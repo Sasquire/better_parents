@@ -184,6 +184,9 @@ function do_update(){
         rule.node.querySelector('.child_img').src = post_obj[rule.source] ? post_obj[rule.source].source : 'https://upload.wikimedia.org/wikipedia/commons/a/af/Question_mark.png';
         rule.node.querySelector('.parent_img').src = post_obj[rule.target] ? post_obj[rule.target].source : 'https://upload.wikimedia.org/wikipedia/commons/a/af/Question_mark.png';
 
+        rule.node.querySelector('.child_img').title = post_obj[rule.source] ? post_obj[rule.source].flag_message : '';
+        rule.node.querySelector('.parent_img').title = post_obj[rule.target] ? post_obj[rule.target].flag_message : '';
+
         rule.node.querySelector('.child_link').href = '/post/show/'+rule.source;
         rule.node.querySelector('.parent_link').href = '/post/show/'+rule.target;
     });
