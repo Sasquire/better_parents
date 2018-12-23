@@ -26,13 +26,17 @@ const simulation = this_d3.forceSimulation()
     .force("center", this_d3.forceCenter(svg.attr("width") / 2, svg.attr("height") / 2))
     .on("tick", ticked);;
 /*--- End d3 stuff ---*/
-GM_addStyle(`
-.link { stroke: #999;  stroke-width: 3px; }
-.idem_parent_thumbs {box-sizing: border-box; max-width:100px; max-height:100px}
-.hidden {display:none;}
-svg {background-color:#00759f;}
-.parent-rule { width:245px; margin:2px; z-index:10; }
-`);
+
+if (typeof GM_addStyle === 'function') {
+    GM_addStyle(`
+    .link { stroke: #999;  stroke-width: 3px; }
+    .idem_parent_thumbs {box-sizing: border-box; max-width:100px; max-height:100px}
+    .hidden {display:none;}
+    svg {background-color:#00759f;}
+    .parent-rule { width:245px; margin:2px; z-index:10; }
+    `);
+}
+
 
 const all_posts = [];
 function all_post_obj(){
@@ -237,7 +241,7 @@ async function get_page(page_id){
         flag_message: flag_message_ ? flag_message_.innerText : ''
     };
     if(source_){
-        ret_obj.source = source_.src.replace('net/data/', 'net/data/preview/').split('.').slice(0, -1).join('.')+'.jpg'
+        ret_obj.source = source_.dataset.sample_url.replace('/sample/', '/preview/').split('.').slice(0, -1).join('.')+'.jpg'
     } else if(webm_source_){
         ret_obj.source = webm_source_.poster.replace('/sample/', '/preview/').split('.').slice(0, -1).join('.')+'.jpg'
     } else if(flash_source_){
@@ -250,50 +254,33 @@ async function get_page(page_id){
 }
 
 async function add_this_to_set(set_id){
-    return new Promise(function(resolve, reject){
-        const url = 'https://e621.net/set/add_post.xml?set_id='+set_id+'&name='+name+'&password_hash='+api_key+'&post_id='+page_id;
-		const xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function() {
-                if (this.readyState == 4 && this.status == 200) {
-					resolve();
-                } else if(this.status != 0 && this.status != 200){
-					resolve();
-                }
-            };
-		xhttp.open('POST', url, true);
-        xhttp.send();
-    });
+    const url_obj = new URL('https://e621.net/set/add_post.xml');
+    url_obj.searchParams.set('set_id', set_id);
+    url_obj.searchParams.set('name', name);
+    url_obj.searchParams.set('password_hash', api_key);
+    url_obj.searchParams.set('post_id', page_id);
+
+    let fetch_req = new Request(url_obj.href);
+    return fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
 }
 
 async function set_parent(post_id, parent_id){
-    return new Promise(function(resolve, reject){
-        const xhttp = new XMLHttpRequest();
-        const url = 'https://e621.net/post/update.json?name='+name+'&password_hash='+api_key+'&id='+post_id+'&post[parent_id]='+parent_id;
+    const url_obj = new URL('https://e621.net/post/update.json');
+    url_obj.searchParams.set('id', post_id);
+    url_obj.searchParams.set('name', name);
+    url_obj.searchParams.set('password_hash', api_key);
+    url_obj.searchParams.set('post[parent_id]', parent_id);
 
-        xhttp.onreadystatechange = function() {
-            if(xhttp.readyState == 4 && xhttp.status == 200) {
-                resolve(xhttp);
-            }
-        }
-        xhttp.open('POST', url, true);
-        xhttp.send();
-    });
+    let fetch_req = new Request(url_obj.href);
+    return fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
 }
 
 async function download_post(id){
-    return new Promise(function(resolve, reject){setTimeout(function(){
-       const xhttp = new XMLHttpRequest();
-       xhttp.onreadystatechange = function() {
-           if (this.readyState == 4 && this.status == 200) {
-               resolve(xhttp.responseText);
-           } else if(this.status != 0 && this.status != 200){
-               reject('Blip #'+id+' gave response '+this.status);
-           }
-       };
+    const url_obj = new URL('https://e621.net/post/show');
+    url_obj.searchParams.set('id', id);
 
-       xhttp.open('GET', 'https://e621.net/post/show/'+id, true);
-       xhttp.send();
-    })}, 1000);
+    let fetch_req = new Request(url_obj.href);
+    return fetch(fetch_req,  {'method': 'GET'}).then(res => res.text());
 }
 
 svg.append('defs').append('marker')
@@ -324,7 +311,9 @@ function update(links, nodes) {
         .data(nodes)
 		.enter()
 		.append("image")
-  		.attr("xlink:href", d => d.img)
+        .attr("xlink:href", d => d.img)
+        .attr("width", "100px")
+        .attr("height", "100px")
 		.call(this_d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
