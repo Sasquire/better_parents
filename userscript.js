@@ -26,13 +26,17 @@ const simulation = this_d3.forceSimulation()
     .force("center", this_d3.forceCenter(svg.attr("width") / 2, svg.attr("height") / 2))
     .on("tick", ticked);;
 /*--- End d3 stuff ---*/
-GM_addStyle(`
-.link { stroke: #999;  stroke-width: 3px; }
-.idem_parent_thumbs {box-sizing: border-box; max-width:100px; max-height:100px}
-.hidden {display:none;}
-svg {background-color:#00759f;}
-.parent-rule { width:245px; margin:2px; z-index:10; }
-`);
+
+if (typeof GM_addStyle === 'function') {
+    GM_addStyle(`
+    .link { stroke: #999;  stroke-width: 3px; }
+    .idem_parent_thumbs {box-sizing: border-box; max-width:100px; max-height:100px}
+    .hidden {display:none;}
+    svg {background-color:#00759f;}
+    .parent-rule { width:245px; margin:2px; z-index:10; }
+    `);
+}
+
 
 const all_posts = [];
 function all_post_obj(){
