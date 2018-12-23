@@ -245,7 +245,7 @@ async function get_page(page_id){
         flag_message: flag_message_ ? flag_message_.innerText : ''
     };
     if(source_){
-        ret_obj.source = source_.src.replace('net/data/', 'net/data/preview/').split('.').slice(0, -1).join('.')+'.jpg'
+        ret_obj.source = source_.dataset.sample_url.replace('/sample/', '/preview/').split('.').slice(0, -1).join('.')+'.jpg'
     } else if(webm_source_){
         ret_obj.source = webm_source_.poster.replace('/sample/', '/preview/').split('.').slice(0, -1).join('.')+'.jpg'
     } else if(flash_source_){
@@ -315,7 +315,9 @@ function update(links, nodes) {
         .data(nodes)
 		.enter()
 		.append("image")
-  		.attr("xlink:href", d => d.img)
+        .attr("xlink:href", d => d.img)
+        .attr("width", "100px")
+        .attr("height", "100px")
 		.call(this_d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
