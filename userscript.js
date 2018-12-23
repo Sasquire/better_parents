@@ -36,37 +36,33 @@ svg {background-color:#00759f;}
 
 const all_posts = [];
 function all_post_obj(){
-    const post_obj = {};
-    for(let post of all_posts){
-        post_obj[post.post_id] = post;
-    }
-    return post_obj;
+    return all_posts.reduce((all_obj, post) => {
+        all_obj[post.post_id] = post;
+        return all_obj;
+    }, {});
 }
+
 function all_post_nodes(){
     return all_posts.map(e => ({
         id: e.post_id,
         img: e.source
     }));
 }
+
 function all_post_links(){
-    const links = [];
-    for(let post of all_posts){
-        for(let child of post.children){
-            links.push({
-                source: child,
-                target: post.post_id
-            });
-        }
-        if(post.parent_id){
-            links.push({
-                source: post.post_id,
-                target: post.parent_id
-            });
-        }
-    }
-    return links.filter((e, index) =>
-        index == links.findIndex(t => t.source == e.source && t.target === e.target)
+    return all_posts.map(post =>
+        post.children.map(child => ({
+           source: child,
+           target: post.post_id
+        })).concat({
+            source: post.post_id,
+            target: post.parent_id
+        })
     )
+    .reduce((acc, link) => acc.concat(...link), [])
+    .filter((e, index, arr) =>
+        index == arr.findIndex(t => t.source == e.source && t.target === e.target)
+    );
 }
 
 const page_id = parseInt(window.location.href.match(/\/(\d+).*/)[1]);
@@ -209,9 +205,9 @@ function string_to_node(string){
 }
 
 async function download_post_tree(start_id){
-    if(all_posts.some(e => e.post_id == start_id)){ return; } // this post is already handeled
+    if(all_posts.some(e => e.post_id == start_id)){ return []; } // this post is already handeled
     const cur_post = await get_page(start_id);
-    for(let child of cur_post.children){
+     for(let child of cur_post.children){
         await download_post_tree(child);
     }
     if(cur_post.parent_id){
@@ -362,3 +358,7 @@ function dragged(d) {
     d.fx = this_d3.event.x;
     d.fy = this_d3.event.y;
 }
+// reimplements the proper Array.reduce that application-min.js has removed
+Object.defineProperty(Array.prototype,'reduce',{value:function(callback ){if(this===null){throw new TypeError('Array.prototype.reduce called on null or undefined')}if(typeof callback!=='function'){throw new TypeError(callback+' is not a function')}var o=Object(this);var len=o.length>>>0;var k=0;var value;if(arguments.length>=2){value=arguments[1]}else{while(k<len&&!(k in o)){k+=1}if(k>=len){throw new TypeError('Reduce of empty array with no initial value')}value=o[k++]}while(k<len){if(k in o){value=callback(value,o[k],k,o)}k+=1}return value}})
+// whyy. this one is array.filter
+Array.prototype.filter=function(func,thisArg){'use strict';if(!((typeof func==='Function'||typeof func==='function')&&this)){throw new TypeError()}var len=this.length>>>0,res=[len],t=this,c=0,i=-1;if(thisArg===undefined){while(++i!==len){if(i in this){if(func(t[i],i,t)){res[c++]=t[i]}}}}else{while(++i!==len){if(i in this){if(func.call(thisArg,t[i],i,t)){res[c++]=t[i]}}}}res.length=c;return res}
