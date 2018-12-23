@@ -113,6 +113,7 @@ download_post_tree(page_id).then(k => {
         document.getElementById('submit_btn').parentNode.replaceChild(document.getElementById('submit_btn').cloneNode(true), document.getElementById('submit_btn'));
         document.getElementById('submit_btn').innerHTML = 'Done';
     });
+    
     do_update();
 });
 
@@ -222,30 +223,50 @@ async function download_post_tree(start_id){
 async function get_page(page_id){
     if(all_posts.find(e => e.post_id == page_id)){ return all_posts.find(e => e.post_id == page_id); }
     const page_text = await download_post(page_id);
-    const child_block = page_text.match(/<div id="child-posts-expanded-thumbs">(.*?)<div style="margin-bottom: 1em;">/gms);
-    const parent_block = page_text.match(/<p><a href="\/post\/show\/(\d+)" >#\d+<\/a><\/p>/gms);
-    const ret_obj = {};
-    ret_obj.post_id = page_id;
-    if(parent_block != null){
-        ret_obj.parent_id = parseInt(parent_block[0].match(/\d+/)[0]);
-    }
-    if(child_block != null){
-        ret_obj.children = child_block[0].match(/(?:<span class="thumb" id="p(\d+)">.*?)+/gms).map(e => e.match(/\d+/)[0]).map(e => parseInt(e));
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(page_text, "text/html");
+    const parent_ = doc.querySelector('#post-view > .sidebar > .status-notice > p > a');
+    const source_ = doc.querySelector('#post-view > .content > div:nth-child(2) > img');
+    const flash_source_ = doc.querySelector('#post-view > .content > div:nth-child(2) > object');
+    const webm_source_ = doc.querySelector('#post-view > .content > div:nth-child(2) > video');
+    const flag_message_ = doc.querySelector('#post-view > .status-notice.status-red');
+
+    const ret_obj = {
+        post_id: page_id,
+        children: [...doc.querySelectorAll('#child-posts-expanded-thumbs > .thumb')].map(e=>parseInt(e.id.substring(1))),
+        parent_id: parent_ ? parseInt(parent_.innerText.substring(1)) : null,
+        source: '',
+        deleted: source_ == null && flash_source_ == null && webm_source_ == null,
+        flag_message: flag_message_ ? flag_message_.innerText : ''
+    };
+    if(source_){
+        ret_obj.source = source_.src.replace('net/data/', 'net/data/preview/').split('.').slice(0, -1).join('.')+'.jpg'
+    } else if(webm_source_){
+        ret_obj.source = webm_source_.poster.replace('/sample/', '/preview/').split('.').slice(0, -1).join('.')+'.jpg'
+    } else if(flash_source_){
+        ret_obj.source = 'https://upload.wikimedia.org/wikipedia/commons/thumb/archive/2/2c/20130102125302%21Adobe_Flash_Professional_icon.png/120px-Adobe_Flash_Professional_icon.png'
     } else {
-        ret_obj.children = [];
-    }
-    if(/<\/div>\s*<img src='\/images\/deleted-preview.png'\/>\s*<div>/gms.test(page_text)){
-        const del_html = /<div class="status-notice status-red">(.*?)<\/div>/gms.exec(page_text)[1];
-        ret_obj.deleted = true;
-        ret_obj.flag_message = del_html.replace(/(<.*?>|\s\s+)/gsm, '');
-        ret_obj.source = 'https://e621.net/images/deleted-preview.png';
-    } else {
-        const md5 = page_text.match(/src="https?:\/\/static1.e621.net\/data\/..\/.*?"/gsm)[0].substring(41).replace(/\..*/, '');
-        ret_obj.deleted = false;
-        ret_obj.source = 'https://static1.e621.net/data/preview/'+md5.substring(0, 2)+'/'+md5.substring(2, 4)+'/'+md5+'.jpg'
+        ret_obj.source = 'https://e621.net/images/deleted-preview.png'
     }
     all_posts.push(ret_obj);
     return ret_obj;
+}
+
+async function add_this_to_set(set_id){
+    return new Promise(function(resolve, reject){
+        const url = 'https://e621.net/set/add_post.xml?set_id='+set_id+'&name='+name+'&password_hash='+api_key+'&post_id='+page_id;
+		const xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+					resolve();
+                } else if(this.status != 0 && this.status != 200){
+					resolve();
+                }
+            };
+		xhttp.open('POST', url, true);
+        xhttp.send();
+    });
 }
 
 async function set_parent(post_id, parent_id){
