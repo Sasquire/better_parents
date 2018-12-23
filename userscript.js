@@ -14,10 +14,10 @@
 const username = 'name';
 const api_key = 'api-key';
 const sets = [
-    // {  set_id: 12213,
-    //    set_name: '50-50\'s Socks!' },
-    // {  set_id: 12187,
-    //    set_name: '3, it's the magic number' }
+    // {  id: 12213,
+    //    name: '50-50\'s Socks!' },
+    // {  id: 12187,
+    //    name: '3, it's the magic number' }
 ];
 const on_by_default = true;
 /*--- End config ---*/
@@ -41,10 +41,17 @@ const all_posts = [];
 if (typeof GM_addStyle === 'function') {
     GM_addStyle(`
     .link { stroke: #999;  stroke-width: 3px; }
-    .idem_parent_thumbs {box-sizing: border-box; max-width:100px; max-height:100px}
+    .parent-rule > input {width:96px; box-shadow: none;}
+    .parent-rule > a > img {height:auto; width:auto; max-width:100px; max-height:100px;}
     .hidden {display:none;}
     svg {background-color:#00759f;}
-    .parent-rule { width:245px; margin:2px; z-index:10; }
+    .parent-rule { z-index:10; }
+    #parent_viewer_button_div > div { display:inline-block; margin-bottom:5px; padding:3px;}
+    #parent_relations { width:236px;}
+    #better_parents_toggler{margin-bottom:5px;}
+    .status-notice {top:0px;}
+    .status-orange {background-color: #bb8811; border: 1px solid #8c650c;}
+    .remove_btn {width:0.75em;background-color:red;}
     `);
 }
 
@@ -84,11 +91,11 @@ download_post_tree(page_id).then(k => {
     <div id="better_parents_toggler" class="status-notice">
         Toggle Better Parents
     </div>
-    <div id="parent_relations" style="width:245px;">
-        <div id="parent_viewer_button_div" style="margin-bottom:10px;">
-            <span class="status-notice" style="width:93px;padding:3px;" id="update_graph_btn">Update Graph</span>
-            <span class="status-notice" style="width:60px;padding:3px;" id="add_rule_btn">Add Rule</span>
-            <span class="status-notice" style="width:30px;padding:3px;" id="submit_btn">Submit</span>
+    <div id="parent_relations">
+        <div id="parent_viewer_button_div" >
+            <div class="status-notice" id="update_graph_btn">Update Graph</div>
+            <div class="status-notice" id="add_rule_btn">Add Rule</div>
+            <div class="status-notice" id="submit_btn">Submit</div>
         </div>
     </div>`;
 
@@ -103,21 +110,26 @@ download_post_tree(page_id).then(k => {
     all_posts.forEach(add_rule);
     if(on_by_default == false){ toggle_visibility(); }
 
+    document.getElementById('parent_viewer_button_div').innerHTML += sets.map(set => `<div title="Set #${set.id}" class="status-notice" title id="set_adder_${set.id}">${set.name}</div>`).join(' ');
+    sets.forEach(set => document.getElementById('set_adder_'+set.id).addEventListener('dblclick', () => add_this_to_set(set.id)));
+
     document.getElementById('better_parents_toggler').addEventListener('click', toggle_visibility);
     document.getElementById('update_graph_btn').addEventListener('click', do_update);
     document.getElementById('add_rule_btn').addEventListener('click', () => add_rule());
     document.getElementById('submit_btn').addEventListener('dblclick', async function(){
-        document.getElementById('submit_btn').innerHTML = '...';
+        const submit_button = document.getElementById('submit_btn');
+        submit_button.classList.add('status-orange');
+        submit_button.innerHTML = '...';
         const rules = get_changed_rules();
         for(let rule of rules){
-      //      await set_parent(rule.source, rule.target)
+            await set_parent(rule.source, rule.target)
         }
-        // document.getElementById('submit_btn').parentNode.replaceChild(document.getElementById('submit_btn').cloneNode(true), document.getElementById('submit_btn'));
-        document.getElementById('submit_btn').innerHTML = 'Done';
+        submit_button.classList.remove('status-orange');
+        submit_button.classList.add('status-green');
+        submit_button.innerHTML = 'Done';
+        submit_button.parentNode.replaceChild(submit_button.cloneNode(true), submit_button);
         do_update();
     });
-
-    do_update();
 });
 
 function toggle_visibility(){
@@ -127,21 +139,20 @@ function toggle_visibility(){
 }
 
 function add_rule(input_rule){
-    input_rule = input_rule || {post_id:'', parent_id:'', deleted:false};
+    input_rule = input_rule || {post_id:'', parent_id:''};
     const block =
-    ` <div class="parent-rule status-notice ${input_rule.deleted ? 'status-red' : ''}">
-            <div onclick="this.parentNode.parentNode.removeChild(this.parentNode);" style="width:1em;background-color:red;">X</div>
-            <input class="child_text idem_parent_thumbs" value="${input_rule.post_id}"></input>
-            ==>
-            <input class="parent_text idem_parent_thumbs" value="${input_rule.parent_id}"></input>
+    ` <div class="parent-rule status-notice">
+            <span class="remove_btn" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">X</span><br/>
+
+            <input class="child_text" value="${input_rule.post_id}"></input>
+            ⇨
+            <input class="parent_text" value="${input_rule.parent_id}"></input>
+
             <br/>
-            <a class="child_link">
-                <img class="child_img idem_parent_thumbs">
-            </a>
-            ==>
-            <a class="parent_link">
-                <img class="parent_img idem_parent_thumbs">
-            </a>
+
+            <a class="child_link"><img class="child_img"></a>
+            ⇨
+            <a class="parent_link"><img class="parent_img"></a>
         </div>`;
     if(input_rule.parent_id != null){
         document.getElementById('parent_relations').appendChild(string_to_node(block).firstElementChild);
@@ -257,42 +268,49 @@ async function get_post(post_id){
     const parser = new DOMParser();
     const doc = parser.parseFromString(page_text, "text/html");
     const parent_ = doc.querySelector('#post-view > .sidebar > .status-notice > p > a');
-    const source_ = doc.querySelector('#image');
-    const flash_source_ = doc.querySelector('#post-view > .content > div:nth-child(2) > object');
-    const webm_source_ = doc.querySelector('#webm-container');
     const flag_message_ = doc.querySelector('#post-view > .status-notice.status-red');
 
     const ret_obj = {
         post_id: post_id,
         children: [...doc.querySelectorAll('#child-posts-expanded-thumbs > .thumb')].map(e=>parseInt(e.id.substring(1))),
         parent_id: parent_ ? parseInt(parent_.innerText.substring(1)) : null,
-        source: '',
-        deleted: source_ == null && flash_source_ == null && webm_source_ == null,
+        source: get_source_image(doc),
+        deleted: flag_message_ != null,
         flag_message: flag_message_ ? flag_message_.innerText : ''
     };
-    if(source_){
-        ret_obj.source = source_.dataset.sample_url.replace(/(\/data\/sample\/)|(\/data\/)/, '/data/preview/').split('.').slice(0, -1).join('.')+'.jpg'
-    } else if(webm_source_){
-        ret_obj.source = webm_source_.poster.replace(/(\/data\/sample\/)|(\/data\/)/, '/data/preview/').split('.').slice(0, -1).join('.')+'.jpg'
-    } else if(flash_source_){
-        ret_obj.source = 'https://raw.githubusercontent.com/Sasquire/better_parents/master/flash.png'
-    } else {
-        ret_obj.source = 'https://e621.net/images/deleted-preview.png'
-    }
 
     all_posts.push(ret_obj);
     return ret_obj;
 }
 
+function get_source_image(doc){
+    const source_ = doc.querySelector('#image');
+    const flash_source_ = doc.querySelector('#post-view > .content > div:nth-child(2) > object');
+    const webm_source_ = doc.querySelector('#webm-container');
+    if(source_){
+        return source_.dataset.sample_url.replace(/(\/data\/sample\/)|(\/data\/)/, '/data/preview/').split('.').slice(0, -1).join('.')+'.jpg';
+    } else if(webm_source_){
+        return webm_source_.poster.replace(/(\/data\/sample\/)|(\/data\/)/, '/data/preview/').split('.').slice(0, -1).join('.')+'.jpg';
+    } else if(flash_source_){
+        return 'https://raw.githubusercontent.com/Sasquire/better_parents/master/flash.png';
+    } else {
+        return 'https://e621.net/images/deleted-preview.png';
+    }
+}
+
 async function add_this_to_set(set_id){
-    const url_obj = new URL('https://e621.net/set/add_post.xml');
+    const url_obj = new URL('https://e621.net/set/add_post.json');
     url_obj.searchParams.set('set_id', set_id);
     url_obj.searchParams.set('name', username);
     url_obj.searchParams.set('password_hash', api_key);
     url_obj.searchParams.set('post_id', page_id);
-
     let fetch_req = new Request(url_obj.href);
-    return fetch(fetch_req, {'method': 'POST'}).then(res => res.text()).catch(e => console.log(`putting ${page_id} in set ${set_id}`, e));
+
+    document.getElementById('set_adder_'+set_id).classList.add('status-orange');
+    const response = await fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
+    document.getElementById('set_adder_'+set_id).classList.remove('status-orange');
+    document.getElementById('set_adder_'+set_id).classList.add('status-green');
+    return response;
 }
 
 async function set_parent(post_id, parent_id){
@@ -303,7 +321,7 @@ async function set_parent(post_id, parent_id){
     url_obj.searchParams.set('post[parent_id]', parent_id);
 
     let fetch_req = new Request(url_obj.href);
-    return fetch(fetch_req, {'method': 'POST'}).then(res => res.text()).catch(e => console.log(`setting ${parent_id} as parent of ${post_id}`, e));
+    return fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
 }
 
 async function download_post(id){
@@ -311,9 +329,8 @@ async function download_post(id){
     url_obj.searchParams.set('id', id);
 
     let fetch_req = new Request(url_obj.href);
-    return fetch(fetch_req, {'method': 'GET'}).then(res => res.text()).catch(e => console.log(`downloading post ${id}`, e));
+    return fetch(fetch_req, {'method': 'GET'}).then(res => res.text());
 }
-
 /*--- End of all the fun code ---*/
 
 /*--- Start d3 stuff I'm not sure about ---*/
@@ -352,6 +369,8 @@ function update(links, nodes) {
                 .on("drag", dragged)
         )
 
+    node.append("svg:title")
+        .text(d => d.id)
 
     simulation.nodes(nodes)
     simulation.force("link").links(links);
