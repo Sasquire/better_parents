@@ -231,9 +231,6 @@ function collapse_rule(e){
     get_custom_rules({})
         .filter(p => p.target == child_id && p.source_obj.deleted == false && p.source != parent_id)
         .forEach(p => {p.node.querySelector('.parent_text').value = parent_id});
-    if(parent_rule.classList.contains('status-red') == false){
-        parent_rule.remove();
-    }
     do_update();
 }
 
@@ -279,13 +276,15 @@ function string_to_node(string){
     temp.innerHTML = string;
     return temp;
 }
-// linear-gradient(to right, RGB(110, 175, 233), RGB(110, 175, 233));
+
 function highlight(post_id){
-    const all_fields = [...document.getElementsByClassName('child_text')].concat([...document.getElementsByClassName('parent_text')]);
-    all_fields.forEach(n => {n.parentNode.style.backgroundImage = ''});
-    all_fields
-        .filter(n => parseInt(n.value) == post_id)
-        .forEach(n => {n.parentNode.style.backgroundImage = 'linear-gradient(rgba(0, 255, 0, 0.3), rgba(0, 255, 0, 0.3))'})
+    const all_fields = get_custom_rules({});
+    all_fields.forEach(n => {n.node.style.backgroundImage = ''});
+
+    all_fields.filter(n => n.source == post_id)
+        .forEach(n => {n.node.style.backgroundImage = 'linear-gradient(#c970d366, #c970d366)'});
+    all_fields.filter(n => n.target == post_id)
+        .forEach(n => {n.node.style.backgroundImage = 'linear-gradient(#00ff0044, #00ff0044)'});
 }
 
 async function download_post_tree(start_id){
