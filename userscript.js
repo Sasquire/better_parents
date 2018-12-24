@@ -43,6 +43,7 @@ if (typeof GM_addStyle === 'function') {
     .link { stroke: #999;  stroke-width: 3px; }
     .parent-rule > input {width:96px; box-shadow: none;}
     .parent-rule > a > img {height:auto; width:auto; max-width:100px; max-height:100px;}
+    .parent-rule > a { width: 100px; display: inline-block; }
     .hidden {display:none;}
     svg {background-color:#00759f;}
     .parent-rule { z-index:10; }
@@ -51,7 +52,9 @@ if (typeof GM_addStyle === 'function') {
     #better_parents_toggler{margin-bottom:5px;}
     .status-notice {top:0px;}
     .status-orange {background-color: #bb8811; border: 1px solid #8c650c;}
-    .remove_btn {width:0.75em;background-color:red;}
+    .ibp_button { padding: 0px; border: 1px solid;}
+    .remove_btn {background-color:red; border-color:orangered; }
+    .collapse_btn {background-color:orange; border-color:orangered; }
     `);
 }
 
@@ -142,7 +145,9 @@ function add_rule(input_rule){
     input_rule = input_rule || {post_id:'', parent_id:''};
     const block =
     ` <div class="parent-rule status-notice">
-            <span class="remove_btn" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">X</span><br/>
+            <button class="remove_btn ibp_button">Remove Rule</button>
+            <button class="collapse_btn ibp_button">Collapse</button>
+            <br/>
 
             <input class="child_text" value="${input_rule.post_id}"></input>
             ⇨
@@ -214,6 +219,24 @@ function get_changed_rules(){
     return user_rules.concat(deleted_base_rules);
 }
 
+function remove_rule(e){
+    this.parentNode.remove()
+    do_update();
+}
+
+function collapse_rule(e){
+    const parent_rule = this.parentNode;
+    const child_id = parseInt(parent_rule.querySelector('.child_text').value);
+    const parent_id = parseInt(parent_rule.querySelector('.parent_text').value);
+    get_custom_rules({})
+        .filter(p => p.target == child_id && p.source_obj.deleted == false && p.source != parent_id)
+        .forEach(p => {p.node.querySelector('.parent_text').value = parent_id});
+    if(parent_rule.classList.contains('status-red') == false){
+        parent_rule.remove();
+    }
+    do_update();
+}
+
 function do_update(){
     get_custom_rules({}).forEach(rule => {
         rule.node.classList.remove('status-red');
@@ -238,6 +261,14 @@ function do_update(){
         rule.node.querySelector('.parent_link').href = '/post/show/'+rule.target;
     });
 
+    [...document.getElementsByClassName('remove_btn')].forEach(btn => {
+        btn.addEventListener('click', remove_rule);
+    });
+
+    [...document.getElementsByClassName('collapse_btn')].forEach(btn => {
+        btn.addEventListener('click', collapse_rule);
+    });
+
     const good_rules = get_custom_rules({source_exists:true, target_exists:true})
     const good_nodes = all_post_nodes()
     update(good_rules, good_nodes);
@@ -247,6 +278,14 @@ function string_to_node(string){
     const temp = document.createElement('div');
     temp.innerHTML = string;
     return temp;
+}
+// linear-gradient(to right, RGB(110, 175, 233), RGB(110, 175, 233));
+function highlight(post_id){
+    const all_fields = [...document.getElementsByClassName('child_text')].concat([...document.getElementsByClassName('parent_text')]);
+    all_fields.forEach(n => {n.parentNode.style.backgroundImage = ''});
+    all_fields
+        .filter(n => parseInt(n.value) == post_id)
+        .forEach(n => {n.parentNode.style.backgroundImage = 'linear-gradient(rgba(0, 255, 0, 0.3), rgba(0, 255, 0, 0.3))'})
 }
 
 async function download_post_tree(start_id){
@@ -285,7 +324,7 @@ async function get_post(post_id){
 
 function get_source_image(doc){
     const source_ = doc.querySelector('#image');
-    const flash_source_ = doc.querySelector('#post-view > .content > div:nth-child(2) > object');
+    const flash_source_ = doc.querySelector('#post-view object');
     const webm_source_ = doc.querySelector('#webm-container');
     if(source_){
         return source_.dataset.sample_url.replace(/(\/data\/sample\/)|(\/data\/)/, '/data/preview/').split('.').slice(0, -1).join('.')+'.jpg';
@@ -371,6 +410,9 @@ function update(links, nodes) {
 
     node.append("svg:title")
         .text(d => d.id)
+
+    node.on('mouseover', (e) => highlight(e.id))
+    node.on('mouseout', (e) => highlight())
 
     simulation.nodes(nodes)
     simulation.force("link").links(links);
