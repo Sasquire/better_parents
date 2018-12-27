@@ -1,16 +1,40 @@
 {
-    "content_scripts": [
-      {
-        "matches": ["*://e621.net/post/show/*"],
-        "js": ["d3.v4.js", "d3-selection-multi.v1.js", "userscript.js"],
-        "css": ["userstyle.css"]
-      }
-    ],
+	"name": "Better e6",
+	"description": "General improvements to e621",
+	
+	"author": "Sasquire",
+	"version": "1.0",
+	"manifest_version": 2,
+	
+	"permissions": [
+		"webRequest",
+		"webRequestBlocking",
+		"*://e621.net/*",
+		"storage"
+	],
 
-    "name": "parent viewewr",
-    "description": "graphical parent viewing",
-    "author": "idem",
-    "version": "1.0",
-  
-    "manifest_version": 2
-  }
+	"options_ui":{ "page":"./options/options.html" },
+
+	"icons": { "48": "icon.png" },
+
+	"content_scripts": [
+		{
+			"matches": ["*://e621.net/*"],
+			"js": ["./source/change_css/load_custom_css.js"],
+			"css": ["./source/change_css/custom.css"]
+		}, {
+			"matches": ["*://e621.net/post"],
+			"js": ["./source/dom_cleanup/post-index.js"],
+			"run_at": "document_start"
+		}, {
+			"matches": ["*://e621.net/*"],
+			"js": ["./source/application_min_changes/better_blacklist.js"],
+			"run_at": "document_end"
+		}
+	],
+	"background": {
+		"scripts": ["hot-reload.js", "./source/change_css/dissable_css.js"]
+	},
+
+	"web_accessible_resources": ["./source/application_min_changes/*.js"]
+}
