@@ -16,8 +16,6 @@
 	"options_ui":{ "page":"./options/options.html" },
 
 	"icons": { "48": "icon.png" },
-
-	"web_accessible_resources": ["source/application_min_changes/*.js"],
 	
 	"content_scripts": [
 		{
@@ -28,12 +26,9 @@
 			"matches": ["*://e621.net/post"],
 			"js": ["./source/dom_cleanup/post-index.js"],
 			"run_at": "document_start"
-		}, {
-			"matches": ["*://e621.net/*"],
-			"js": ["./source/application_min_changes/initialize_changes.js"],
-			"run_at": "document_start"
 		}
 	],
+	
 	"background": {
 		"scripts": ["hot-reload.js", "./source/change_css/dissable_css.js"]
 	}
