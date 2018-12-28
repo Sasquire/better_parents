@@ -2,8 +2,8 @@
     "content_scripts": [
       {
         "matches": ["*://e621.net/post/show/*"],
-        "js": ["d3.v4.js", "d3-selection-multi.v1.js", "userscript.js"],
-        "css": ["userstyle.css"]
+        "js": ["vis-network.min.js", "userscript.js"],
+        "css": ["vis-network.min.css", "userstyle.css"]
       }
     ],
 

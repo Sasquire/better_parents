@@ -21,22 +21,16 @@ const sets = [
 ];
 const on_by_default = true;
 /*--- End config ---*/
-/*--- Start d3 stuff ---*/
-const this_d3 = d3;
-document.getElementById('right-col').insertBefore(string_to_node('<svg id="the_graph" width="700" height="700"></svg>'), document.getElementById('right-col').firstChild);
-let svg = this_d3.select("svg");
-let node;
-let link;
-const simulation = this_d3.forceSimulation()
-    .force("link", this_d3.forceLink().id(function (d) {return d.id;}).distance(230).strength(2))
-    .force("charge", this_d3.forceManyBody())
-    .force("center", this_d3.forceCenter(svg.attr("width") / 2, svg.attr("height") / 2))
-    .on("tick", ticked);;
-/*--- End d3 stuff ---*/
+
 /*--- Start globals ---*/
 const page_id = parseInt(window.location.href.match(/\/(\d+).*/)[1]);
 const all_posts = [];
+let network;
 /*--- End globals --- */
+
+if (!document.getElementById('parent-network-graph')) {
+    document.getElementById('right-col').insertBefore(string_to_node('<div id="parent-network-graph"></div>'), document.getElementById('right-col').firstChild);
+}
 
 if (typeof GM_addStyle === 'function') {
     GM_addStyle(`
@@ -57,6 +51,16 @@ if (typeof GM_addStyle === 'function') {
     .collapse_btn {background-color:orange; border-color:orangered; }
     `);
 }
+
+// Init graph
+(function()  {
+    const graphContainer = document.getElementById('parent-network-graph');
+    network = new vis.Network(graphContainer, {nodes: [], edges: []}, {
+        height: '400px',
+        nodes:{shape:'image', size:30},
+        edges:{arrows:'to'},
+    });
+}) ();
 
 function all_post_obj(){
     return all_posts.reduce((all_obj, post) => {
@@ -104,7 +108,7 @@ download_post_tree(page_id).then(k => {
 
     const parent_notification = document.querySelector('#post-view > .sidebar > .status-notice > h6');
     const child_notification = document.querySelector('#child-posts');
-    if(parent_notification == null && child_notification == null){ return document.querySelector('#the_graph').remove(); }
+    if(parent_notification == null && child_notification == null){ return document.querySelector('#parent-network-graph').remove(); }
     if(parent_notification) { parent_notification.parentNode.remove(); }
     if(child_notification){ child_notification.remove(); }
 
@@ -137,7 +141,7 @@ download_post_tree(page_id).then(k => {
 
 function toggle_visibility(){
     document.getElementById('parent_relations').classList.toggle('hidden');
-    document.getElementById('the_graph').classList.toggle('hidden');
+    document.getElementById('parent-network-graph').classList.toggle('hidden');
     document.getElementById('better_parents_toggler').classList.toggle('status-red');
 }
 
@@ -371,76 +375,14 @@ async function download_post(id){
 }
 /*--- End of all the fun code ---*/
 
-/*--- Start d3 stuff I'm not sure about ---*/
-svg.append('defs').append('marker')
-    .attrs({'id':'arrowhead',
-        'viewBox':'-0 -5 10 10',
-        'refX':13,
-        'refY':0,
-        'orient':'auto',
-        'markerWidth':13,
-        'markerHeight':13,
-        'xoverflow':'visible'})
-    .append('svg:path')
-    .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
-    .attr('fill', '#999')
-    .style('stroke','none');
+function update(good_rules, good_nodes) {
+    if (!network) return;
 
-function update(links, nodes) {
-    svg.html(document.getElementById('the_graph').firstElementChild.outerHTML);
-    link = svg.selectAll(".link")
-        .data(links)
-        .enter()
-        .append("line")
-		.attr("class", "link")
-        .attr('marker-end','url(#arrowhead)')
-
-    node = svg.selectAll(".node")
-        .data(nodes)
-		.enter()
-		.append("image")
-        .attr("xlink:href", d => d.img)
-        .attr("width", "100px")
-        .attr("height", "100px")
-		.call(this_d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-        )
-
-    node.append("svg:title")
-        .text(d => d.id)
-
-    node.on('mouseover', (e) => highlight(e.id))
-    node.on('mouseout', (e) => highlight())
-
-    simulation.nodes(nodes)
-    simulation.force("link").links(links);
+    let vis_nodes = good_nodes.map(node => ({'id': node.id, 'image': node.img}));
+    let vis_links = good_rules.map(link => ({'from': link.source, 'to': link.target}));
+    
+    network.setData({nodes: vis_nodes, edges: vis_links})
 }
-
-function ticked() {
-	if(!link || !node){ return; }
-    // move the lines
-	link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
-
-	// move the nodes
-    node.attr("transform", d => "translate(" + d.x + ", " + d.y + ")");
-}
-
-function dragstarted(d) {
-    if (!this_d3.event.active) simulation.alphaTarget(0.3).restart()
-    d.fx = d.x;
-    d.fy = d.y;
-}
-
-function dragged(d) {
-    d.fx = this_d3.event.x;
-    d.fy = this_d3.event.y;
-}
-/*--- End d3 stuff I'm not sure about ---*/
 
 // reimplements the proper Array.reduce that application-min.js has removed
 Object.defineProperty(Array.prototype,'reduce',{value:function(callback ){if(this===null){throw new TypeError('Array.prototype.reduce called on null or undefined')}if(typeof callback!=='function'){throw new TypeError(callback+' is not a function')}var o=Object(this);var len=o.length>>>0;var k=0;var value;if(arguments.length>=2){value=arguments[1]}else{while(k<len&&!(k in o)){k+=1}if(k>=len){throw new TypeError('Reduce of empty array with no initial value')}value=o[k++]}while(k<len){if(k in o){value=callback(value,o[k],k,o)}k+=1}return value}})
