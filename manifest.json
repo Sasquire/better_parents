@@ -16,19 +16,29 @@
 	"options_ui":{ "page":"./options/options.html" },
 
 	"icons": { "48": "icon.png" },
+
+	"web_accessible_resources": ["/images/*.png"],
 	
 	"content_scripts": [
 		{
 			"matches": ["*://e621.net/*"],
-			"js": ["./source/change_css/load_custom_css.js"],
+			"js": ["./source/change_css/load_user_css.js"],
 			"css": ["./source/change_css/custom.css"]
 		}, {
 			"matches": ["*://e621.net/post"],
 			"js": ["./source/dom_cleanup/post-index.js"],
 			"run_at": "document_start"
+		}, {
+			"matches": ["*://e621.net/post/show/*"],
+			"js": [
+				"./source/parent_viewer/d3.v4.js",
+				"./source/parent_viewer/download_posts.js",
+				"./source/parent_viewer/main.js"
+			],
+			"css": ["./source/parent_viewer/main.css"]
 		}
 	],
-	
+
 	"background": {
 		"scripts": ["hot-reload.js", "./source/change_css/dissable_css.js"]
 	}

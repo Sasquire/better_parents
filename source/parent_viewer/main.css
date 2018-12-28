@@ -1,0 +1,52 @@
+#ibp_container > *:not(:first-child) { width: 236px; }
+#ibp_container .status-notice {
+	margin: 0;
+	padding: 3px;
+	display: inline-block;
+	margin-bottom: 5px;
+	top: 0;
+}
+#ibp_toggler { width: calc(100% - (1em + 2px)); padding: 0.5em !important; }
+#ibp_tools > div { cursor: pointer; }
+.ibp_rule *:not(span){
+	height: auto;
+	width: auto;
+	max-width: 100px;
+	max-height: 100px;
+	display: inline-block;
+	box-shadow: none;
+	padding:0px;
+}
+
+.ibp_rule > button {
+	padding: 0px;
+	border: 1px solid;
+	cursor: pointer;
+}
+
+.ibp_remove_btn {
+	background-color:red; border-color:orangered;
+}
+
+.ibp_collapse_btn {
+	background-color:orange; border-color:orangered;
+}
+
+.ibp_rule {
+	padding:0.5em !important;
+}
+
+/*.link { stroke: #999;  stroke-width: 3px; }
+.parent-rule > input {width:96px; box-shadow: none;}
+.parent-rule > a > img {height:auto; width:auto; max-width:100px; max-height:100px;}
+.parent-rule > a { width: 100px; display: inline-block; }
+.hidden {display:none;}
+svg {background-color:#00759f;}
+.parent-rule { z-index:10; }
+#parent_viewer_button_div > div { display:inline-block; margin-bottom:5px; padding:3px;}
+#parent_relations { width:236px;}
+#better_parents_toggler{margin-bottom:5px;}
+
+.ibp_button { padding: 0px; border: 1px solid;}
+.remove_btn {background-color:red; border-color:orangered; }
+.collapse_btn {background-color:orange; border-color:orangered; } */
