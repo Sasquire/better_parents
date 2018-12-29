@@ -15,19 +15,12 @@ BP.download_all = async function(page_text){
 	return;
 };
 
-BP.check_post = async function(post_id){
-	if(BP.posts[post_id]){ return; }
-	BP.each_start(post_id);
-	await BP.add_post(post_id);
-	await BP.download_complete_post(post_id);
-	BP.each_ended(post_id);
-	return;
-}
-
 BP.download_complete_post = async function(start_id){
 	if(BP.posts[start_id]){ return; }
+	BP.each_start(start_id);
 	await BP.add_post(start_id);
 	await BP.add_post_parents(start_id);
+	BP.each_ended(start_id);
 	return;
 };
 
@@ -44,13 +37,11 @@ BP.add_post_parents = async function(post_id){
 
 BP.add_post = async function(post_id){
 	if(BP.posts[post_id]){ return; }
-	BP.each_start(post_id);
 	const page_text = await BP.download_post(post_id);
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(page_text, "text/html");
 	const post = BP.doc_to_post(doc, post_id);
 	BP.posts[post.post_id] = post;
-	BP.each_ended(post_id);
 	return;
 }
 

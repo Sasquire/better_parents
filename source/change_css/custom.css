@@ -5,6 +5,6 @@
 	top: 0px;
 }
 .status-orange {
-	border: 1px solid #8c650c;
-	background-color: #bb8811;
+	border: 1px solid #8c650c !important;
+	background-color: #bb8811 !important;
 }

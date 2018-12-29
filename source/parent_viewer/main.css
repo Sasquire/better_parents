@@ -24,29 +24,23 @@
 	cursor: pointer;
 }
 
-.ibp_remove_btn {
-	background-color:red; border-color:orangered;
-}
-
-.ibp_collapse_btn {
-	background-color:orange; border-color:orangered;
-}
+.ibp_remove_btn { background-color:red; border-color:orangered; }
+.ibp_collapse_btn { background-color:orange; border-color:orangered; }
+.ibp_flip_btn { background-color:plum; border-color:purple; }
 
 .ibp_rule {
 	padding:0.5em !important;
 }
 
-/*.link { stroke: #999;  stroke-width: 3px; }
-.parent-rule > input {width:96px; box-shadow: none;}
-.parent-rule > a > img {height:auto; width:auto; max-width:100px; max-height:100px;}
-.parent-rule > a { width: 100px; display: inline-block; }
-.hidden {display:none;}
-svg {background-color:#00759f;}
-.parent-rule { z-index:10; }
-#parent_viewer_button_div > div { display:inline-block; margin-bottom:5px; padding:3px;}
-#parent_relations { width:236px;}
-#better_parents_toggler{margin-bottom:5px;}
+.ibp_rule[child_deleted="true"] {
+	background-color: #822828;
+    border: 1px solid #ac2d2d;
+}
 
-.ibp_button { padding: 0px; border: 1px solid;}
-.remove_btn {background-color:red; border-color:orangered; }
-.collapse_btn {background-color:orange; border-color:orangered; } */
+.ibp_rule[child_deleted="true"] > input,
+.ibp_rule[child_deleted="true"] > button.ibp_flip_btn,
+.ibp_rule[parent_deleted="true"] > button.ibp_flip_btn,
+.ibp_rule[child_deleted="true"] > button.ibp_remove_btn {
+	background-color: grey;
+	cursor: default;
+}

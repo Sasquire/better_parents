@@ -1,46 +1,12 @@
-const username = 'name';
-const api_key = 'api-key';
-const on_by_default = true;
-
-function all_post_obj(){
-	return all_posts.reduce((all_obj, post) => {
-		all_obj[post.post_id] = post;
-		return all_obj;
-	}, {});
-}
-
-function all_post_nodes(){
-	return all_posts.map(e => ({
-		id: e.post_id,
-		img: e.source
-	}));
-}
-
-function all_post_links(){
-	return all_posts.map(post =>
-		post.children.map(child => ({
-			source: child,
-			target: post.post_id
-		})).concat({
-			source: post.post_id,
-			target: post.parent_id
-		})
-	)
-	.reduce((acc, link) => acc.concat(...link), [])
-	.filter((e, index, arr) =>
-		index == arr.findIndex(t => t.source == e.source && t.target === e.target) &&
-		e.target != null
-	);
-}
-
 BP.setup_toolbar = function(){
 	const menu_node = string_to_node(`
 	<div id="ibp_toggler" class="status-notice">
 		Toggle Better Parents
 	</div>
 	<div id="ibp_tools">
-		<div class="status-notice" id="ibp_update_graph_btn">Update Graph</div>
-		<div class="status-notice" id="ibp_add_rule_btn">Add Rule</div>
+		<div class="status-notice" id="ibp_fix_relations_btn">Fix</div>
+		<div class="status-notice" id="ibp_update_graph_btn">Update</div>
+		<div class="status-notice" id="ibp_add_rule_btn">Add</div>
 		<div class="status-notice" id="ibp_submit_btn">Submit</div>
 	</div>
 	<div id="ibp_relations">
@@ -49,26 +15,65 @@ BP.setup_toolbar = function(){
 	sidebar.insertBefore(menu_node, sidebar.firstChild);
 	
 	document.getElementById('ibp_toggler').addEventListener('click', toggle_visibility);
-	document.getElementById('ibp_update_graph_btn').addEventListener('click', async () => {
-		const relations = BP.read_relations({});
-		for(const relation of relations){
-			await BP.check_post(relation.s_num);
-			await BP.check_post(relation.t_num);
-		}
-		document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
-		BP.update_both();
-	})
-	document.getElementById('ibp_add_rule_btn').addEventListener('click', BP.add_rule)
+	document.getElementById('ibp_fix_relations_btn').addEventListener('click', BP.check_all_rules)
+	document.getElementById('ibp_update_graph_btn').addEventListener('click', BP.update_both)
+	document.getElementById('ibp_add_rule_btn').addEventListener('click', BP.add_rule);
 	document.getElementById('ibp_submit_btn').addEventListener('dblclick', BP.submit_changes);
 
 	function toggle_visibility(){
 		document.getElementById('ibp_relations').classList.toggle('hidden');
+		document.getElementById('ibp_tools').classList.toggle('hidden');
 		document.getElementById('ibp_toggler').classList.toggle('status-red');
 		document.getElementById('ibp_graph').classList.toggle('hidden');
 	}
 };
 
-BP.submit_changes = function(){};
+BP.submit_changes = function(){
+	const relations = BP.read_relations({});
+	if(relations.some(pair => !pair.s_obj || !pair.t_obj)){
+		console.log('aborting')
+		return; // there is an unkown post
+	};
+	// todo prevent deleted posts
+	relations.some((relation, i, a) => {
+		i == a.reverse().findIndex(e => e.s_num == relation.s_num);
+	});
+	console.log(p)
+	const user_defined = relations.filter(pair => BP.posts[pair.s_num].parent_id != pair.t_num);
+	const user_removed = Object.keys(BP.posts)
+		.map(key => BP.posts[key])
+		.filter(obj => obj.parent_id)
+		.filter(obj => relations.some(pair => pair.s_num == obj.post_id) == false)
+		.map(obj => ({post_id:obj.s_num, parent_id:''}));
+	const changed_rules = user_defined.concat(user_removed);
+	
+	for(const rule of changed_rules){
+		console.log(rule.post_id+' --> '+rule.parent_id);
+//		await set_parent(rule.post_id, rule.parent_id);
+	}
+
+	async function set_parent(post_id, parent_id){
+		const url_obj = new URL('https://e621.net/post/update.json');
+		url_obj.searchParams.set('id', post_id);
+		url_obj.searchParams.set('name', username);
+		url_obj.searchParams.set('password_hash', api_key);
+		url_obj.searchParams.set('post[parent_id]', parent_id);
+	
+		let fetch_req = new Request(url_obj.href);
+		return fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
+	}
+};
+
+BP.check_all_rules = async function(){
+	const relations = BP.read_relations({});
+	for(const relation of relations){
+		await BP.download_complete_post(relation.s_num);
+		await BP.download_complete_post(relation.t_num);
+	}
+	document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
+	BP.update_both();
+	return;
+}
 
 BP.add_rule = function(input_rule){
 	if(input_rule.parent_id === null){ return; }
@@ -78,6 +83,7 @@ BP.add_rule = function(input_rule){
 	<div class="ibp_rule status-notice">
 		<button class="ibp_remove_btn">Remove Rule</button>
 		<button class="ibp_collapse_btn">Collapse</button>
+		<button class="ibp_flip_btn">Flip</button>
 		<br/>
 		<input class="ibp_child_text" value="${post_id}"></input>
 		<span>⇨</span>
@@ -88,32 +94,65 @@ BP.add_rule = function(input_rule){
 		<a class="ibp_parent_link"><img class="ibp_parent_img"></a>
 	</div>`).firstElementChild;
 	document.getElementById('ibp_relations').appendChild(rule_node);
-	Array.from(rule_node.getElementsByTagName('input')).forEach(node => {
-		node.addEventListener('input', (e) => {
-			// only allow numbers
-			const val = e.target.value;
-			e.target.value = val.replace(/[^0-9]/g, '');
-			if(val.length == 0){ e.target.value = 0; }
-			// child can not be a deleted post
-			const num_val = parseInt(e.target.value);
-			if(e.target.classList.contains('ibp_child_text') && BP.posts[num_val] && BP.posts[num_val].deleted){
-				e.target.value = 0;
-			}
-			BP.update_rules();
-		});
-	});
-	
-	if(BP.posts[post_id] && BP.posts[post_id].deleted == true){
-		rule_node.classList.add('status-red');
-		Array.from(rule_node.getElementsByTagName('input')).forEach(input => {
-			input.readOnly = true;
-			input.style.backgroundColor = 'grey';
-		})
-		rule_node.querySelector('.ibp_remove_btn').value = 'stuck';
-		rule_node.querySelector('.ibp_remove_btn').style.backgroundColor = 'grey';
+
+	rule_node.setAttribute('parent_deleted', BP.posts[parent_id] != undefined && BP.posts[parent_id].deleted);
+	rule_node.setAttribute('child_deleted', BP.posts[post_id] != undefined && BP.posts[post_id].deleted);
+	rule_node.querySelector('.ibp_child_text').addEventListener('input', input_cleanser);
+	rule_node.querySelector('.ibp_parent_text').addEventListener('input', input_cleanser);
+	BP.add_rule_toolbtn_listeners(rule_node);
+	BP.update_both();
+
+	function input_cleanser(e){
+		// only allow numbers
+		const val = e.target.value;
+		e.target.value = val.replace(/[^0-9]/g, '');
+		if(val.length == 0){ e.target.value = 0; }
+		// child can not be a deleted post
+		const num_val = parseInt(e.target.value);
+		if(e.target.classList.contains('ibp_child_text') && BP.posts[num_val] && BP.posts[num_val].deleted){
+			e.target.value = 0;
+		}
+		// todo remove this
+		// if post is unknown remove it
+		if(BP.posts[num_val] == undefined){
+			e.target.value = 0;
+		}
+		BP.update_rules();
+	}
+};
+
+BP.add_rule_toolbtn_listeners = function(node){
+	node.querySelector('.ibp_remove_btn').addEventListener('click', remove_rule);
+	node.querySelector('.ibp_collapse_btn').addEventListener('click', collapse_rule);
+	node.querySelector('.ibp_flip_btn').addEventListener('click', flip_rule);
+
+	function remove_rule(e){
+		if(this.parentNode.getAttribute('child_deleted') == 'true'){ return; }
+		this.parentNode.remove();
+		BP.update_both();
 	}
 
-	BP.update_both();
+	function collapse_rule(e){
+		const parent_rule = this.parentNode;
+		const child_id = parseInt(parent_rule.querySelector('.ibp_child_text').value);
+		const parent_id = parseInt(parent_rule.querySelector('.ibp_parent_text').value);
+		BP.read_relations({})
+			.filter(p => p.t_num == child_id && p.s_obj.deleted == false && p.s_num != parent_id)
+			.forEach(p => {p.tn_text.value = parent_id});
+		BP.update_both();
+	}
+
+	function flip_rule(e){
+		const parent_rule = this.parentNode;
+		if(parent_rule.getAttribute('child_deleted') == 'true' ||
+		   parent_rule.getAttribute('parent_deleted') == 'true') { return; }
+		const child = parent_rule.querySelector('.ibp_child_text');
+		const parent = parent_rule.querySelector('.ibp_parent_text');
+		const s = child.value;
+		child.value = parent.value
+		parent.value = s;
+		BP.update_both();
+	}
 };
 
 BP.read_relations = function(options){
@@ -134,12 +173,14 @@ BP.read_relations = function(options){
 				sn_link: node.querySelector('.ibp_child_link'),
 				sn_img: node.querySelector('.ibp_child_img'),
 				s_num: source_num,
+				post_id: source_num,
 				s_obj: BP.posts[source_num],
 
 				tn_text: target_text,
 				tn_link: node.querySelector('.ibp_parent_link'),
 				tn_img: node.querySelector('.ibp_parent_img'),
 				t_num: target_num,
+				parent_id: target_num,
 				t_obj: BP.posts[target_num]
 			};
 		})
@@ -149,36 +190,8 @@ BP.read_relations = function(options){
 			if(options.target_exists){ ret = ret && rule.t_obj; }
 			if(options.source_ndeleted){ ret = ret && rule.s_obj && rule.s_obj.deleted == false; }
 			if(options.target_ndeleted){ ret = ret && rule.t_obj && rule.t_obj.deleted == false; }
-			if(options.duplicate_remove){ }
 			return ret;
 		});
-};
-
-function get_changed_rules(){
-	const user_rules = get_custom_rules({
-		source_exists:true,
-		target_exists:true,
-		source_ndeleted:true,
-		duplicate_remove:true
-	});
-
-	const parent_rules = get_custom_rules({
-		source_exists:true,
-		target_exists:true,
-	});
-
-	const post_obj = all_post_obj();
-	const deleted_base_rules = all_post_links()
-		.filter(e =>
-			post_obj[e.source].deleted == false && // isnt coming from a deleted post
-			parent_rules.some(k => e.source == k.source) == false // theres not a post using its source
-		)
-		.map(e => ({
-			source: e.source,
-			target: ''
-		}));
-
-	return user_rules.concat(deleted_base_rules);
 };
 
 BP.update_rules = function(){
@@ -202,28 +215,6 @@ BP.update_rules = function(){
 		rule.tn_img.title = rule.t_obj.flag_message;
 		rule.tn_link.href = '/post/show/'+rule.t_num;
 	});
-
-	Array.from(document.getElementsByClassName('ibp_remove_btn')).forEach(btn => {
-		btn.addEventListener('click', remove_rule);
-	});
-
-	Array.from(document.getElementsByClassName('ibp_collapse_btn')).forEach(btn => {
-		btn.addEventListener('click', collapse_rule);
-	});
-
-	function remove_rule(e){
-		if(this.value == 'stuck'){ return; }
-		this.parentNode.remove();
-	}
-
-	function collapse_rule(e){
-		const parent_rule = this.parentNode;
-		const child_id = parseInt(parent_rule.querySelector('.ibp_child_text').value);
-		const parent_id = parseInt(parent_rule.querySelector('.ibp_parent_text').value);
-		BP.read_relations({})
-			.filter(p => p.t_num == child_id && p.s_obj.deleted == false && p.s_num != parent_id)
-			.forEach(p => {p.tn_text.value = parent_id});
-	}
 };
 
 BP.update_both = function(){
@@ -245,17 +236,6 @@ function highlight(post_id){
 		.forEach(n => {n.node.style.backgroundImage = 'linear-gradient(#c970d366, #c970d366)'});
 	all_fields.filter(n => n.target == post_id)
 		.forEach(n => {n.node.style.backgroundImage = 'linear-gradient(#00ff0044, #00ff0044)'});
-}
-
-async function set_parent(post_id, parent_id){
-	const url_obj = new URL('https://e621.net/post/update.json');
-	url_obj.searchParams.set('id', post_id);
-	url_obj.searchParams.set('name', username);
-	url_obj.searchParams.set('password_hash', api_key);
-	url_obj.searchParams.set('post[parent_id]', parent_id);
-
-	let fetch_req = new Request(url_obj.href);
-	return fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
 }
 
 (function(){
