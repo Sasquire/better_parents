@@ -7,6 +7,7 @@ BP.setup_toolbar = function(){
 		<div class="status-notice" id="ibp_fix_relations_btn">Fix</div>
 		<div class="status-notice" id="ibp_update_graph_btn">Update</div>
 		<div class="status-notice" id="ibp_add_rule_btn">Add</div>
+		<div class="status-notice" id="ibp_minimize_btn">Min</div>
 		<div class="status-notice" id="ibp_submit_btn">Submit</div>
 	</div>
 	<div id="ibp_relations">
@@ -18,6 +19,7 @@ BP.setup_toolbar = function(){
 	document.getElementById('ibp_fix_relations_btn').addEventListener('click', BP.check_all_rules)
 	document.getElementById('ibp_update_graph_btn').addEventListener('click', BP.update_both)
 	document.getElementById('ibp_add_rule_btn').addEventListener('click', BP.add_rule);
+	document.getElementById('ibp_minimize_btn').addEventListener('click', minimize_posts);
 	document.getElementById('ibp_submit_btn').addEventListener('dblclick', BP.submit_changes);
 
 	function toggle_visibility(){
@@ -26,19 +28,25 @@ BP.setup_toolbar = function(){
 		document.getElementById('ibp_toggler').classList.toggle('status-red');
 		document.getElementById('ibp_graph').classList.toggle('hidden');
 	}
+
+	function minimize_posts(){
+		const old_node = document.getElementById('ibp_hider');
+		if(old_node){ return old_node.remove(); }
+		const new_node = string_to_node('<style id="ibp_hider">.ibp_arrow2, .ibp_rule > a { display:none !important }</style>').firstElementChild;
+		document.head.appendChild(new_node);
+	}
 };
 
-BP.submit_changes = function(){
-	const relations = BP.read_relations({});
-	if(relations.some(pair => !pair.s_obj || !pair.t_obj)){
-		console.log('aborting')
-		return; // there is an unkown post
-	};
-	// todo prevent deleted posts
-	relations.some((relation, i, a) => {
-		i == a.reverse().findIndex(e => e.s_num == relation.s_num);
-	});
-	console.log(p)
+BP.submit_changes = async function(){
+	const submit_btn = document.getElementById('ibp_submit_btn');
+	submit_btn.classList.add('status-purple');
+	setTimeout(() => submit_btn.classList.remove('status-plum'), 3000);
+	const relations = BP.read_relations();
+	const r = relations.map(e => e.s_num);
+	if(relations.some(pair => !pair.s_obj || !pair.t_obj)){ return; }; // there is an unkown post
+	if(r.length != new Set(r).size){ return; } // a source is set twice
+	if(relations.some(pair => pair.s_obj.destroyed || pair.t_obj.destroyed)){ return; }
+	
 	const user_defined = relations.filter(pair => BP.posts[pair.s_num].parent_id != pair.t_num);
 	const user_removed = Object.keys(BP.posts)
 		.map(key => BP.posts[key])
@@ -46,14 +54,23 @@ BP.submit_changes = function(){
 		.filter(obj => relations.some(pair => pair.s_num == obj.post_id) == false)
 		.map(obj => ({post_id:obj.s_num, parent_id:''}));
 	const changed_rules = user_defined.concat(user_removed);
-	
+
+	submit_btn.classList.remove('status-purple')
+	submit_btn.classList.add('status-orange');
+	submit_btn.innerHTML = '...';
 	for(const rule of changed_rules){
-		console.log(rule.post_id+' --> '+rule.parent_id);
 //		await set_parent(rule.post_id, rule.parent_id);
 	}
+	submit_btn.classList.remove('status-orange');
+	submit_btn.classList.add('status-green');
+	submit_btn.innerHTML = 'Done';
+	submit_btn.parentNode.replaceChild(submit_btn.cloneNode(true), submit_btn);
 
+	// todo use form subit instead of api?
 	async function set_parent(post_id, parent_id){
 		const url_obj = new URL('https://e621.net/post/update.json');
+		const { api_key, username } = await get_from_storage(['api_key', 'username']);
+		if(api_key == undefined || username == undefined){ return; }
 		url_obj.searchParams.set('id', post_id);
 		url_obj.searchParams.set('name', username);
 		url_obj.searchParams.set('password_hash', api_key);
@@ -65,7 +82,7 @@ BP.submit_changes = function(){
 };
 
 BP.check_all_rules = async function(){
-	const relations = BP.read_relations({});
+	const relations = BP.read_relations();
 	for(const relation of relations){
 		await BP.download_complete_post(relation.s_num);
 		await BP.download_complete_post(relation.t_num);
@@ -86,20 +103,20 @@ BP.add_rule = function(input_rule){
 		<button class="ibp_flip_btn">Flip</button>
 		<br/>
 		<input class="ibp_child_text" value="${post_id}"></input>
-		<span>⇨</span>
+		<span class="ibp_arrow1">⇨</span>
 		<input class="ibp_parent_text" value="${parent_id}"></input>
 		<br/>
 		<a class="ibp_child_link"><img class="ibp_child_img"></a>
-		<span>⇨</span>	
+		<span class="ibp_arrow2">⇨</span>	
 		<a class="ibp_parent_link"><img class="ibp_parent_img"></a>
 	</div>`).firstElementChild;
 	document.getElementById('ibp_relations').appendChild(rule_node);
 
-	rule_node.setAttribute('parent_deleted', BP.posts[parent_id] != undefined && BP.posts[parent_id].deleted);
-	rule_node.setAttribute('child_deleted', BP.posts[post_id] != undefined && BP.posts[post_id].deleted);
 	rule_node.querySelector('.ibp_child_text').addEventListener('input', input_cleanser);
 	rule_node.querySelector('.ibp_parent_text').addEventListener('input', input_cleanser);
-	BP.add_rule_toolbtn_listeners(rule_node);
+	rule_node.querySelector('.ibp_remove_btn').addEventListener('click', remove_rule);
+	rule_node.querySelector('.ibp_collapse_btn').addEventListener('click', collapse_rule);
+	rule_node.querySelector('.ibp_flip_btn').addEventListener('click', flip_rule);
 	BP.update_both();
 
 	function input_cleanser(e){
@@ -107,27 +124,10 @@ BP.add_rule = function(input_rule){
 		const val = e.target.value;
 		e.target.value = val.replace(/[^0-9]/g, '');
 		if(val.length == 0){ e.target.value = 0; }
-		// child can not be a deleted post
-		const num_val = parseInt(e.target.value);
-		if(e.target.classList.contains('ibp_child_text') && BP.posts[num_val] && BP.posts[num_val].deleted){
-			e.target.value = 0;
-		}
-		// todo remove this
-		// if post is unknown remove it
-		if(BP.posts[num_val] == undefined){
-			e.target.value = 0;
-		}
 		BP.update_rules();
 	}
-};
-
-BP.add_rule_toolbtn_listeners = function(node){
-	node.querySelector('.ibp_remove_btn').addEventListener('click', remove_rule);
-	node.querySelector('.ibp_collapse_btn').addEventListener('click', collapse_rule);
-	node.querySelector('.ibp_flip_btn').addEventListener('click', flip_rule);
 
 	function remove_rule(e){
-		if(this.parentNode.getAttribute('child_deleted') == 'true'){ return; }
 		this.parentNode.remove();
 		BP.update_both();
 	}
@@ -136,7 +136,7 @@ BP.add_rule_toolbtn_listeners = function(node){
 		const parent_rule = this.parentNode;
 		const child_id = parseInt(parent_rule.querySelector('.ibp_child_text').value);
 		const parent_id = parseInt(parent_rule.querySelector('.ibp_parent_text').value);
-		BP.read_relations({})
+		BP.read_relations()
 			.filter(p => p.t_num == child_id && p.s_obj.deleted == false && p.s_num != parent_id)
 			.forEach(p => {p.tn_text.value = parent_id});
 		BP.update_both();
@@ -144,8 +144,6 @@ BP.add_rule_toolbtn_listeners = function(node){
 
 	function flip_rule(e){
 		const parent_rule = this.parentNode;
-		if(parent_rule.getAttribute('child_deleted') == 'true' ||
-		   parent_rule.getAttribute('parent_deleted') == 'true') { return; }
 		const child = parent_rule.querySelector('.ibp_child_text');
 		const parent = parent_rule.querySelector('.ibp_parent_text');
 		const s = child.value;
@@ -155,8 +153,8 @@ BP.add_rule_toolbtn_listeners = function(node){
 	}
 };
 
-BP.read_relations = function(options){
-	options = options || {};
+// todo make this nicer
+BP.read_relations = function(){
 	return Array.from(document.getElementsByClassName('ibp_rule'))
 		.map(node => {
 			const source_text = node.querySelector('.ibp_child_text');
@@ -183,19 +181,11 @@ BP.read_relations = function(options){
 				parent_id: target_num,
 				t_obj: BP.posts[target_num]
 			};
-		})
-		.filter(rule => {
-			let ret = true;
-			if(options.source_exists){ ret = ret && rule.s_obj; }
-			if(options.target_exists){ ret = ret && rule.t_obj; }
-			if(options.source_ndeleted){ ret = ret && rule.s_obj && rule.s_obj.deleted == false; }
-			if(options.target_ndeleted){ ret = ret && rule.t_obj && rule.t_obj.deleted == false; }
-			return ret;
 		});
 };
 
 BP.update_rules = function(){
-	BP.read_relations({}).forEach(rule => {
+	BP.read_relations().forEach(rule => {
 		rule.sn_img.src = chrome.extension.getURL('images/unknown.png');
 		rule.tn_img.src = chrome.extension.getURL('images/unknown.png');
 		rule.sn_img.title = 'Unkown Post';
@@ -204,13 +194,13 @@ BP.update_rules = function(){
 		rule.tn_link.href = '/post/show/'+rule.tn_text.value;
 	});
 
-	BP.read_relations({source_exists:true}).forEach(rule => {
+	BP.read_relations().filter(e => e.s_obj).forEach(rule => {
 		rule.sn_img.src = rule.s_obj.source;
 		rule.sn_img.title = rule.s_obj.flag_message;
 		rule.sn_link.href = '/post/show/'+rule.s_num;
 	});
 
-	BP.read_relations({target_exists:true}).forEach(rule => {
+	BP.read_relations().filter(e => e.t_obj).forEach(rule => {
 		rule.tn_img.src = rule.t_obj.source;
 		rule.tn_img.title = rule.t_obj.flag_message;
 		rule.tn_link.href = '/post/show/'+rule.t_num;
@@ -226,6 +216,15 @@ function string_to_node(string, id){
 	temp.innerHTML = string;
 	if(id){ temp.id = id; }
 	return temp;
+}
+
+// todo make a utilities file with this sort of stuff
+async function get_from_storage(key){
+	return new Promise(function(resolve, reject){
+		chrome.storage.sync.get(key, function(e){
+			resolve(e);
+		});
+	});
 }
 
 function highlight(post_id){
@@ -245,10 +244,19 @@ function highlight(post_id){
 	if(parent_notification == null && child_notification == null){ return; }
 	if(parent_notification) { parent_notification.parentNode.remove(); }
 	if(child_notification){ child_notification.remove(); }
-	
 	BP.setup_toolbar();
-	BP.each_start = e => document.getElementById('ibp_toggler').innerHTML = 'Downloading Post #'+e;
-	BP.each_ended = e => BP.add_rule(BP.posts[e]);
+
+	const toggler = document.getElementById('ibp_toggler');
+	BP.each_start = e => {
+		toggler.innerHTML = 'Downloading Post #'+e;
+		toggler.classList.add('status-orange');
+		document.getElementById('ibp_fix_relations_btn').classList.add('status-orange');
+	};
+	BP.each_ended = e => {
+		BP.add_rule(BP.posts[e]);
+		toggler.classList.remove('status-orange');
+		document.getElementById('ibp_fix_relations_btn').classList.remove('status-orange');
+	}
 	BP.download_all(page_text).then(() => {
 		document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
 	});

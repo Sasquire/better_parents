@@ -55,6 +55,7 @@ BP.doc_to_post = function(doc, post_id){
 		parent_id: parent_ ? parseInt(parent_.innerText.substring(1)) : null,
 		source: BP.get_source_image(doc, flag_message_),
 		deleted: flag_message_ != null,
+		destroyed: flag_message_ && flag_message_.innerText == 'This post does not exist',
 		flag_message: flag_message_ ? flag_message_.innerText : ''
 	};
 }

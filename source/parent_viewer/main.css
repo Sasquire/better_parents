@@ -31,16 +31,3 @@
 .ibp_rule {
 	padding:0.5em !important;
 }
-
-.ibp_rule[child_deleted="true"] {
-	background-color: #822828;
-    border: 1px solid #ac2d2d;
-}
-
-.ibp_rule[child_deleted="true"] > input,
-.ibp_rule[child_deleted="true"] > button.ibp_flip_btn,
-.ibp_rule[parent_deleted="true"] > button.ibp_flip_btn,
-.ibp_rule[child_deleted="true"] > button.ibp_remove_btn {
-	background-color: grey;
-	cursor: default;
-}

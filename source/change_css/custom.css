@@ -1,5 +1,5 @@
 .hidden {
-	display: none;
+	display: none !important;
 }
 .status-notice {
 	top: 0px;
@@ -7,4 +7,25 @@
 .status-orange {
 	border: 1px solid #8c650c !important;
 	background-color: #bb8811 !important;
+}
+
+.status-purple {
+    background-color: #453269 !important;
+    border: 1px solid #711791 !important;
+}
+
+.status-serpent {
+    background-color: #595 !important;
+    border: 1px solid #595 !important;
+    color: #fff !important;
+}
+
+.status-yellow {
+    background-color: #ff0 !important;
+    border: 1px solid #711791 !important;
+}
+
+.status-plum {
+	background-color: plum;
+	border: 1px solid purple;
 }
