@@ -242,5 +242,6 @@ async function set_parent(post_id, parent_id){
 	BP.each_ended = e => BP.add_rule(BP.posts[e]);
 	BP.download_all(page_text).then(() => {
 		document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
+		BP.pause_graph_physics(false);
 	});
 })();
