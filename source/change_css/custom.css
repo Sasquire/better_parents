@@ -1,0 +1,10 @@
+.hidden {
+	display: none;
+}
+.status-notice {
+	top: 0px;
+}
+.status-orange {
+	border: 1px solid #8c650c;
+	background-color: #bb8811;
+}

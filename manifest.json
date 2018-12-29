@@ -1,16 +1,49 @@
 {
-    "content_scripts": [
-      {
-        "matches": ["*://e621.net/post/show/*"],
-        "js": ["vis-network.min.js", "userscript.js"],
-        "css": ["vis-network.min.css", "userstyle.css"]
-      }
-    ],
+	"name": "Better e6",
+	"description": "General improvements to e621",
+	
+	"author": "Sasquire",
+	"version": "1.0",
+	"manifest_version": 2,
+	
+	"permissions": [
+		"webRequest",
+		"webRequestBlocking",
+		"*://e621.net/*",
+		"storage"
+	],
 
-    "name": "parent viewewr",
-    "description": "graphical parent viewing",
-    "author": "idem",
-    "version": "1.0",
-  
-    "manifest_version": 2
-  }
+	"options_ui":{ "page":"./options/options.html" },
+
+	"icons": { "48": "icon.png" },
+
+	"web_accessible_resources": ["/images/*.png"],
+	
+	"content_scripts": [
+		{
+			"matches": ["*://e621.net/*"],
+			"js": ["./source/change_css/load_user_css.js"],
+			"css": ["./source/change_css/custom.css"]
+		}, {
+			"matches": ["*://e621.net/post"],
+			"js": ["./source/dom_cleanup/post-index.js"],
+			"run_at": "document_start"
+		}, {
+			"matches": ["*://e621.net/post/show/*"],
+			"js": [
+				"./source/parent_viewer/vis-network.min.js",
+        "./source/parent_viewer/download_posts.js",
+        "./source/parent_viewer/graph.js",
+				"./source/parent_viewer/main.js"
+			],
+			"css": [
+        "./source/parent_viewer/vis-network.min.css",
+        "./source/parent_viewer/main.css"
+      ]
+		}
+	],
+
+	"background": {
+		"scripts": ["hot-reload.js", "./source/change_css/dissable_css.js"]
+	}
+}
