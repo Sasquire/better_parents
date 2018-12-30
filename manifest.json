@@ -31,11 +31,16 @@
 		}, {
 			"matches": ["*://e621.net/post/show/*"],
 			"js": [
-				"./source/parent_viewer/d3.v4.js",
+				"./source/parent_viewer/vis-network.min.js",
 				"./source/parent_viewer/download_posts.js",
+				"./source/parent_viewer/graph.js",
 				"./source/parent_viewer/main.js"
 			],
-			"css": ["./source/parent_viewer/main.css"]
+			"css": [
+				"./source/parent_viewer/vis-network.min.css",
+				"./source/parent_viewer/main.css"
+			],
+			"run_at": "document_idle"  
 		}
 	],
 

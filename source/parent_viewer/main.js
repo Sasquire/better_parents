@@ -209,6 +209,7 @@ BP.update_rules = function(){
 
 BP.update_both = function(){
 	BP.update_rules();
+	BP.update_graph();
 }
 
 function string_to_node(string, id){
@@ -245,19 +246,20 @@ function highlight(post_id){
 	if(parent_notification) { parent_notification.parentNode.remove(); }
 	if(child_notification){ child_notification.remove(); }
 	BP.setup_toolbar();
-
-	const toggler = document.getElementById('ibp_toggler');
-	BP.each_start = e => {
-		toggler.innerHTML = 'Downloading Post #'+e;
-		toggler.classList.add('status-orange');
+	BP.init_graph();
+	
+	BP.each_start = function(e){
+		document.getElementById('ibp_toggler').innerHTML = 'Downloading Post #'+e;
+		document.getElementById('ibp_toggler').classList.add('status-orange');
 		document.getElementById('ibp_fix_relations_btn').classList.add('status-orange');
 	};
-	BP.each_ended = e => {
+	BP.each_ended = function(e){
 		BP.add_rule(BP.posts[e]);
-		toggler.classList.remove('status-orange');
+		document.getElementById('ibp_toggler').classList.remove('status-orange');
 		document.getElementById('ibp_fix_relations_btn').classList.remove('status-orange');
 	}
 	BP.download_all(page_text).then(() => {
 		document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
+		BP.pause_graph_physics(false);
 	});
 })();

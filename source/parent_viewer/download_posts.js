@@ -3,6 +3,7 @@ BP.posts = {};
 BP.each_start = function(){/* executed on each post added */};
 BP.each_ended = function(){/* executed on each post added */};
 
+
 BP.download_all = async function(page_text){
 	const page_id = parseInt(window.location.href.match(/\/(\d+).*/)[1]);
 	BP.each_start(page_id);
