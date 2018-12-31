@@ -36,10 +36,7 @@
 				"./source/parent_viewer/graph.js",
 				"./source/parent_viewer/main.js"
 			],
-			"css": [
-				"./source/parent_viewer/vis-network.min.css",
-				"./source/parent_viewer/main.css"
-			],
+			"css": ["./source/parent_viewer/main.css"],
 			"run_at": "document_idle"  
 		}
 	],

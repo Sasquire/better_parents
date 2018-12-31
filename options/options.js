@@ -7,8 +7,8 @@ async function saveOptions(e) {
 
 async function restoreOptions() {
 	const { api_key, username } = await get_from_storage(['api_key', 'username']);
-	document.getElementById('api_key').value = api_key;
-	document.getElementById('username').value = username;
+	document.getElementById('api_key').value = api_key || '';
+	document.getElementById('username').value = username || '';
 }
 
 document.addEventListener('DOMContentLoaded', restoreOptions);

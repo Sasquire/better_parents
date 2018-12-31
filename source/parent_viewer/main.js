@@ -15,26 +15,26 @@ BP.setup_toolbar = function(){
 	const sidebar = document.querySelector('#post-view > .sidebar');
 	sidebar.insertBefore(menu_node, sidebar.firstChild);
 	
-	document.getElementById('ibp_toggler').addEventListener('click', toggle_visibility);
+	document.getElementById('ibp_toggler').addEventListener('click', BP.toggle_visibility);
 	document.getElementById('ibp_fix_relations_btn').addEventListener('click', BP.check_all_rules)
 	document.getElementById('ibp_update_graph_btn').addEventListener('click', BP.update_both)
 	document.getElementById('ibp_add_rule_btn').addEventListener('click', BP.add_rule);
-	document.getElementById('ibp_minimize_btn').addEventListener('click', minimize_posts);
+	document.getElementById('ibp_minimize_btn').addEventListener('click', BP.reduce_posts);
 	document.getElementById('ibp_submit_btn').addEventListener('dblclick', BP.submit_changes);
+};
 
-	function toggle_visibility(){
-		document.getElementById('ibp_relations').classList.toggle('hidden');
-		document.getElementById('ibp_tools').classList.toggle('hidden');
-		document.getElementById('ibp_toggler').classList.toggle('status-red');
-		document.getElementById('ibp_graph').classList.toggle('hidden');
-	}
+BP.toggle_visibility = function(){
+	document.getElementById('ibp_relations').classList.toggle('hidden');
+	document.getElementById('ibp_tools').classList.toggle('hidden');
+	document.getElementById('ibp_toggler').classList.toggle('status-red');
+	document.getElementById('ibp_graph').classList.toggle('hidden');
+};
 
-	function minimize_posts(){
-		const old_node = document.getElementById('ibp_hider');
-		if(old_node){ return old_node.remove(); }
-		const new_node = string_to_node('<style id="ibp_hider">.ibp_arrow2, .ibp_rule > a { display:none !important }</style>').firstElementChild;
-		document.head.appendChild(new_node);
-	}
+BP.reduce_posts = function(){
+	const old_node = document.getElementById('ibp_hider');
+	if(old_node){ return old_node.remove(); }
+	const new_node = string_to_node('<style id="ibp_hider">.ibp_arrow2, .ibp_rule > a { display:none !important }</style>').firstElementChild;
+	document.head.appendChild(new_node);
 };
 
 BP.submit_changes = async function(){
@@ -43,9 +43,9 @@ BP.submit_changes = async function(){
 	setTimeout(() => submit_btn.classList.remove('status-plum'), 3000);
 	const relations = BP.read_relations();
 	const r = relations.map(e => e.s_num);
-	if(relations.some(pair => !pair.s_obj || !pair.t_obj)){ return; }; // there is an unkown post
 	if(r.length != new Set(r).size){ return; } // a source is set twice
-	if(relations.some(pair => pair.s_obj.destroyed || pair.t_obj.destroyed)){ return; }
+	if(relations.some(pair => !pair.s_obj || !pair.t_obj)){ return; }; // there is an unkown post
+	if(relations.some(pair => pair.s_obj.destroyed || pair.t_obj.destroyed)){ return; } // a source is destroyed
 	
 	const user_defined = relations.filter(pair => BP.posts[pair.s_num].parent_id != pair.t_num);
 	const user_removed = Object.keys(BP.posts)
@@ -92,6 +92,7 @@ BP.check_all_rules = async function(){
 	return;
 }
 
+// todo better seperators
 BP.add_rule = function(input_rule){
 	if(input_rule.parent_id === null){ return; }
 	const post_id = input_rule.post_id || 0;
@@ -103,11 +104,11 @@ BP.add_rule = function(input_rule){
 		<button class="ibp_flip_btn">Flip</button>
 		<br/>
 		<input class="ibp_child_text" value="${post_id}"></input>
-		<span class="ibp_arrow1">⇨</span>
+		<span class="ibp_arrow1"></span>
 		<input class="ibp_parent_text" value="${parent_id}"></input>
 		<br/>
 		<a class="ibp_child_link"><img class="ibp_child_img"></a>
-		<span class="ibp_arrow2">⇨</span>	
+		<span class="ibp_arrow2"></span>	
 		<a class="ibp_parent_link"><img class="ibp_parent_img"></a>
 	</div>`).firstElementChild;
 	document.getElementById('ibp_relations').appendChild(rule_node);
@@ -119,20 +120,18 @@ BP.add_rule = function(input_rule){
 	rule_node.querySelector('.ibp_flip_btn').addEventListener('click', flip_rule);
 	BP.update_both();
 
-	function input_cleanser(e){
-		// only allow numbers
-		const val = e.target.value;
-		e.target.value = val.replace(/[^0-9]/g, '');
-		if(val.length == 0){ e.target.value = 0; }
+	function input_cleanser(){
+		this.value = this.value.replace(/[^0-9]/g, '');
+		if(this.value.length == 0){ this.value = 0; }
 		BP.update_rules();
 	}
 
-	function remove_rule(e){
+	function remove_rule(){
 		this.parentNode.remove();
 		BP.update_both();
 	}
 
-	function collapse_rule(e){
+	function collapse_rule(){
 		const parent_rule = this.parentNode;
 		const child_id = parseInt(parent_rule.querySelector('.ibp_child_text').value);
 		const parent_id = parseInt(parent_rule.querySelector('.ibp_parent_text').value);
@@ -142,7 +141,7 @@ BP.add_rule = function(input_rule){
 		BP.update_both();
 	}
 
-	function flip_rule(e){
+	function flip_rule(){
 		const parent_rule = this.parentNode;
 		const child = parent_rule.querySelector('.ibp_child_text');
 		const parent = parent_rule.querySelector('.ibp_parent_text');
@@ -212,6 +211,7 @@ BP.update_both = function(){
 	BP.update_graph();
 }
 
+// todo make a utilities file with this sort of stuff
 function string_to_node(string, id){
 	const temp = document.createElement('div');
 	temp.innerHTML = string;
@@ -219,23 +219,12 @@ function string_to_node(string, id){
 	return temp;
 }
 
-// todo make a utilities file with this sort of stuff
 async function get_from_storage(key){
 	return new Promise(function(resolve, reject){
 		chrome.storage.sync.get(key, function(e){
 			resolve(e);
 		});
 	});
-}
-
-function highlight(post_id){
-	const all_fields = get_custom_rules({});
-	all_fields.forEach(n => {n.node.style.backgroundImage = ''});
-
-	all_fields.filter(n => n.source == post_id)
-		.forEach(n => {n.node.style.backgroundImage = 'linear-gradient(#c970d366, #c970d366)'});
-	all_fields.filter(n => n.target == post_id)
-		.forEach(n => {n.node.style.backgroundImage = 'linear-gradient(#00ff0044, #00ff0044)'});
 }
 
 (function(){
@@ -260,6 +249,5 @@ function highlight(post_id){
 	}
 	BP.download_all(page_text).then(() => {
 		document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
-		BP.pause_graph_physics(false);
 	});
 })();
