@@ -23,21 +23,13 @@ BP.setup_toolbar = function(){
 	document.getElementById('ibp_relation_toggler').addEventListener('click', BP.toggle_relations);
 	document.getElementById('ibp_reduce_toggler').addEventListener('click', BP.toggle_reduce_relations);
 	
-	document.getElementById('ibp_fix_relations_btn').addEventListener('click', BP.fix_unknown_relations)
+	document.getElementById('ibp_fix_relations_btn').addEventListener('click', async () => {await BP.fix_unknown_relations(); BP.update_both();})
 	document.getElementById('ibp_draw_graph_btn').addEventListener('click', BP.update_both)
 	document.getElementById('ibp_add_rule_btn').addEventListener('click', BP.add_rule);
 	document.getElementById('ibp_submit_btn').addEventListener('dblclick', BP.submit_changes);
 };
 
-BP.style_toggle_both = function(){
-	const graph_off = document.getElementById('ibp_graph').classList.contains('hidden');
-	if(graph_off == true){
-		document.getElementById('ibp_all_toggler').classList.add('status-red');
-	} else {
-		document.getElementById('ibp_all_toggler').classList.remove('status-red');
-	}
-};
-
+// todo clean these up and have one function/object ?
 BP.toggle_both = function(){
 	/* relations off && graph off turn both on
 	   relations off && graph on  turn graph off
@@ -52,18 +44,27 @@ BP.toggle_both = function(){
 	BP.style_toggle_both();
 };
 
+BP.toggle_graph = function(){
+	document.getElementById('ibp_graph_toggler').classList.toggle('status-red');
+	document.getElementById('ibp_graph').classList.toggle('hidden');
+	BP.style_toggle_both();
+};
+
 BP.toggle_relations = function(){
 	document.getElementById('ibp_relations').classList.toggle('hidden');
 	document.getElementById('ibp_tools').classList.toggle('hidden');
 	document.getElementById('ibp_relation_toggler').classList.toggle('status-red');
 	BP.style_toggle_both();
-}
+};
 
-BP.toggle_graph = function(){
-	document.getElementById('ibp_graph_toggler').classList.toggle('status-red');
-	document.getElementById('ibp_graph').classList.toggle('hidden');
-	BP.style_toggle_both();
-}
+BP.style_toggle_both = function(){
+	const graph_off = document.getElementById('ibp_graph').classList.contains('hidden');
+	if(graph_off == true){
+		document.getElementById('ibp_all_toggler').classList.add('status-red');
+	} else {
+		document.getElementById('ibp_all_toggler').classList.remove('status-red');
+	}
+};
 
 BP.toggle_reduce_relations = function(){
 	const old_node = document.getElementById('ibp_hider');
@@ -84,18 +85,25 @@ BP.apply_settings = function(){
 	Opt.get('BP_hide_relations').then(o => o ? BP.toggle_relations() : '');
 	Opt.get('BP_hide_graph').then(o => o ? BP.toggle_graph() : '');
 	Opt.get('BP_auto_download').then(o => o ? BP.start() : '');
+	Opt.get('BP_bright_highlights').then(o => {
+		if(o){
+			document.head.innerHTML += `
+			<style id="ibp_bright_highlights">
+				.ibp_rule.ipb_parent_highlight {background-color:#0f0;}
+				.ibp_rule.ipb_child_highlight {background-color:#d9d;}
+			</style>`
+		}
+	})
 };
 
 BP.submit_changes = async function(){
-	const submit_btn = document.getElementById('ibp_submit_btn');
-	submit_btn.classList.add('status-plum');
-	setTimeout(() => submit_btn.classList.remove('status-plum'), 3000);
 	const relations = BP.read_relations();
 	const r = relations.map(e => e.s_num);
-	if(r.length != new Set(r).size){ return; } // a source is set twice
-	if(relations.some(pair => !pair.s_obj || !pair.t_obj)){ return; }; // there is an unkown post
-	if(relations.some(pair => pair.s_obj.destroyed || pair.t_obj.destroyed)){ return; } // a source is destroyed
-	
+	if(r.length != new Set(r).size){ return error('Source set twice'); }
+	if(relations.some(pair => !pair.s_obj || !pair.t_obj)){ return error('Unkown post'); }
+	if(relations.some(pair => pair.s_obj.destroyed || pair.t_obj.destroyed)){ return error('Destroyed post'); }
+	if(BP.locked){ return; } // dont submit while downloading
+
 	const user_defined = relations.filter(pair => BP.posts[pair.s_num].parent_id != pair.t_num);
 	const user_removed = Object.keys(BP.posts)
 		.map(key => BP.posts[key])
@@ -103,14 +111,14 @@ BP.submit_changes = async function(){
 		.filter(obj => relations.some(pair => pair.s_num == obj.post_id) == false)
 		.map(obj => ({post_id:obj.s_num, parent_id:''}));
 	const changed_rules = user_defined.concat(user_removed);
-
-	submit_btn.classList.remove('status-purple')
-	submit_btn.classList.add('status-orange');
-	submit_btn.innerHTML = '...';
+	
+	BP.start_lock();
+	document.getElementById('ibp_all_toggler').innerHTML = 'Submitting';
 	for(const rule of changed_rules){
-//		await set_parent(rule.post_id, rule.parent_id);
+		await set_parent(rule.post_id, rule.parent_id);
 	}
-	submit_btn.classList.remove('status-orange');
+	BP.all_over();
+	const submit_btn = document.getElementById('ibp_submit_btn');
 	submit_btn.classList.add('status-green');
 	submit_btn.innerHTML = 'Done';
 	submit_btn.parentNode.replaceChild(submit_btn.cloneNode(true), submit_btn);
@@ -128,6 +136,17 @@ BP.submit_changes = async function(){
 	
 		let fetch_req = new Request(url_obj.href);
 		return fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
+	}
+
+	function error(message){
+		const toggler = document.getElementById('ibp_all_toggler');
+		toggler.innerHTML = message;
+		toggler.classList.add('status-plum');
+		console.log('ab')
+		setTimeout(() => {
+			toggler.classList.remove('status-plum');
+			BP.all_over();
+		}, 3000);
 	}
 };
 
@@ -223,24 +242,25 @@ BP.read_relations = function(){
 
 BP.update_rules = function(){
 	BP.read_relations().forEach(rule => {
-		rule.sn_img.src = chrome.extension.getURL('images/unknown.png');
-		rule.tn_img.src = chrome.extension.getURL('images/unknown.png');
-		rule.sn_img.title = 'Unkown Post';
-		rule.tn_img.title = 'Unkown Post';
-		rule.sn_link.href = '/post/show/'+rule.sn_text.value;
-		rule.tn_link.href = '/post/show/'+rule.tn_text.value;
-	});
-
-	BP.read_relations().filter(e => e.s_obj).forEach(rule => {
-		rule.sn_img.src = rule.s_obj.source;
-		rule.sn_img.title = rule.s_obj.flag_message;
 		rule.sn_link.href = '/post/show/'+rule.s_num;
-	});
-
-	BP.read_relations().filter(e => e.t_obj).forEach(rule => {
-		rule.tn_img.src = rule.t_obj.source;
-		rule.tn_img.title = rule.t_obj.flag_message;
 		rule.tn_link.href = '/post/show/'+rule.t_num;
+		// todo something that looks nicer than these if-else
+		// changed from multiple read and filter because it 
+		// might have looked nicer
+		if(rule.s_obj){
+			rule.sn_img.src = rule.s_obj.source;
+			rule.sn_img.title = rule.s_obj.flag_message;
+		} else {
+			rule.sn_img.src = chrome.extension.getURL('images/unknown.png');
+			rule.sn_img.title = 'Unkown Post';
+		}
+		if(rule.t_obj){
+			rule.tn_img.src = rule.t_obj.source;
+			rule.tn_img.title = rule.t_obj.flag_message;
+		} else {
+			rule.tn_img.src = chrome.extension.getURL('images/unknown.png');
+			rule.tn_img.title = 'Unkown Post';
+		}
 	});
 };
 
@@ -249,7 +269,7 @@ BP.update_both = function(){
 	BP.update_graph();
 }
 
-// todo make a utilities file with this sort of stuff
+// todo move to utilities
 function string_to_node(string, id){
 	const temp = document.createElement('div');
 	temp.innerHTML = string;
@@ -264,19 +284,20 @@ function string_to_node(string, id){
 	if(parent_notification) { parent_notification.parentNode.remove(); }
 	if(child_notification){ child_notification.remove(); }
 	
-	
-	BP.each_start = function(e){
-		document.getElementById('ibp_all_toggler').innerHTML = 'Downloading #'+e;
+	BP.each_start = e => document.getElementById('ibp_all_toggler').innerHTML = 'Downloading #'+e;
+	BP.each_ended = e => BP.add_rule(BP.posts[e]);
+	BP.start_lock = function(){
+		BP.locked = true;
 		document.getElementById('ibp_all_toggler').classList.add('status-orange');
 		document.getElementById('ibp_fix_relations_btn').classList.add('status-orange');
-	};
-	BP.each_ended = function(e){
-		BP.add_rule(BP.posts[e]);
-		document.getElementById('ibp_all_toggler').classList.remove('status-orange');
-		document.getElementById('ibp_fix_relations_btn').classList.remove('status-orange');
+		document.getElementById('ibp_submit_btn').classList.add('status-orange');
 	};
 	BP.all_over = function(){
+		BP.locked = false;
 		document.getElementById('ibp_all_toggler').innerHTML = 'Toggle Both';
+		document.getElementById('ibp_all_toggler').classList.remove('status-orange');
+		document.getElementById('ibp_fix_relations_btn').classList.remove('status-orange');
+		document.getElementById('ibp_submit_btn').classList.remove('status-orange');
 	};
 	BP.setup_toolbar();
 	BP.init_graph();

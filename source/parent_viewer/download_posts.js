@@ -1,24 +1,31 @@
 const BP = {};
 BP.posts = {};
-BP.each_start = function(){/* executed on each post added */};
-BP.each_ended = function(){/* executed on each post added */};
-BP.all_over = function(){/* executed on completion of downloading */}
+BP.locked = false; // value to say if posts can be downloaded
+BP.each_start = function(){};
+BP.each_ended = function(){};
+BP.start_lock = function(){BP.locked = true;};
+BP.all_over = function(){BP.locked = false;};
 BP._saved_page_text = document.documentElement.outerHTML;
 
 BP.start = async function(){
 	const page_id = parseInt(window.location.href.match(/\/(\d+).*/)[1]);
-	return BP.download_complete_post(page_id, BP._saved_page_text).then(BP.all_over);
+	BP.start_lock();
+	BP.download_complete_post(page_id, BP._saved_page_text).then(BP.all_over);
 }
 
+// todo sometimes after idiling on a page for a long time this gives a CORS error
+/* Access to fetch at 'e621.net/post/show?id=' from origin 
+'extension://' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is ... */
 BP.fix_unknown_relations = async function(){
 	const relations = BP.read_relations();
 	if(relations.length == 0){ return  BP.start(); }
+	if(BP.locked == true){ return; }
+	BP.start_lock();
 	for(const relation of relations){
 		await BP.download_complete_post(relation.s_num);
 		await BP.download_complete_post(relation.t_num);
 	}
 	BP.all_over();
-	BP.update_both();
 	return;
 }
 

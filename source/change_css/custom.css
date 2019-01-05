@@ -22,10 +22,12 @@
 
 .status-yellow {
     background-color: #ff0 !important;
-    border: 1px solid #711791 !important;
+	border: 1px solid #711791 !important;
+	color:black !important;
 }
 
 .status-plum {
-	background-color: plum;
-	border: 1px solid purple;
+	background-color: plum !important;
+	border: 1px solid purple !important;
+	color: black !important;
 }

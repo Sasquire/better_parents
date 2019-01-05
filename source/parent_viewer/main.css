@@ -16,9 +16,10 @@
 
 
 .ibp_rule { width:205px; padding:5px !important; }
-.ibp_rule_tools {
-	display:flex;
-}
+.ibp_rule.ipb_parent_highlight {background-color:#00ff0066;}
+.ibp_rule.ipb_child_highlight {background-color:#c970d388;}
+
+.ibp_rule_tools { display:flex; }
 .ibp_rule_tools > button {
 	padding: 0px;
 	border: 1px solid;
@@ -42,4 +43,4 @@
 
 .ibp_remove_btn { background-color:red; border-color:orangered; }
 .ibp_collapse_btn { background-color:orange; border-color:orangered; }
-.ibp_flip_btn { background-color:plum; border-color:purple; }
+.ibp_flip_btn { background-color:turquoise; border-color:darkcyan; }

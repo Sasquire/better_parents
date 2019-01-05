@@ -15,7 +15,7 @@
 
 	"options_ui":{ "page":"./options/options.html" },
 
-	"icons": { "48": "icon.png" },
+	"icons": { "48": "images/icon.png" },
 
 	"web_accessible_resources": ["/images/*.png"],
 	
@@ -38,7 +38,7 @@
 				"./source/parent_viewer/main.js"
 			],
 			"css": ["./source/parent_viewer/main.css"],
-			"run_at": "document_idle"  
+			"run_at": "document_idle"
 		}
 	],
 

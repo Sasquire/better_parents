@@ -16,23 +16,23 @@ BP.init_graph = function() {
 	BP.network.on('hoverNode', highlight);
 	BP.network.on('blurNode', () => highlight());
 
-	// todo different colors and use classes?
-	// todo brighter colors
 	function highlight(e){
 		const post_id = e ? e.node : '';
 		const all_fields = BP.read_relations();
-		all_fields.forEach(n => {n.node.style.backgroundImage = ''});
-
-		all_fields.filter(n => n.s_num == post_id)
-			.forEach(n => n.node.style.backgroundImage = 'linear-gradient(#c970d366, #c970d366)');
-		all_fields.filter(n => n.t_num == post_id)
-			.forEach(n => n.node.style.backgroundImage = 'linear-gradient(#00ff0044, #00ff0044)');
+		all_fields.forEach(n => {
+			if(n.s_num === post_id){
+				n.node.classList.add('ipb_child_highlight');
+			} else if(n.t_num === post_id){
+				n.node.classList.add('ipb_parent_highlight');
+			} else {
+				n.node.classList.remove('ipb_parent_highlight');
+				n.node.classList.remove('ipb_child_highlight');
+			}
+		});
 	}
 };
 
 BP.update_graph = function () {
-	if (!BP.network) return;
-
 	const vis_nodes = Object.values(BP.posts).map(node => ({
 		id: node.post_id,
 		title: `#${node.post_id}`,
