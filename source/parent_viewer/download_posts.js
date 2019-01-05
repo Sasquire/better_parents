@@ -2,24 +2,30 @@ const BP = {};
 BP.posts = {};
 BP.each_start = function(){/* executed on each post added */};
 BP.each_ended = function(){/* executed on each post added */};
+BP.all_over = function(){/* executed on completion of downloading */}
+BP._saved_page_text = document.documentElement.outerHTML;
 
-
-BP.download_all = async function(page_text){
+BP.start = async function(){
 	const page_id = parseInt(window.location.href.match(/\/(\d+).*/)[1]);
-	BP.each_start(page_id);
-	const parser = new DOMParser();
-	const doc = parser.parseFromString(page_text, "text/html");
-	const post = BP.doc_to_post(doc, page_id);
-	BP.posts[post.post_id] = post;
-	await BP.add_post_parents(post.post_id);
-	BP.each_ended(page_id);
-	return;
-};
+	return BP.download_complete_post(page_id, BP._saved_page_text).then(BP.all_over);
+}
 
-BP.download_complete_post = async function(start_id){
-	if(BP.posts[start_id]){ return; }
+BP.fix_unknown_relations = async function(){
+	const relations = BP.read_relations();
+	if(relations.length == 0){ return  BP.start(); }
+	for(const relation of relations){
+		await BP.download_complete_post(relation.s_num);
+		await BP.download_complete_post(relation.t_num);
+	}
+	BP.all_over();
+	BP.update_both();
+	return;
+}
+
+BP.download_complete_post = async function(start_id, page_text){
+	if(BP.posts[start_id] && !page_text){ return; }
 	BP.each_start(start_id);
-	await BP.add_post(start_id);
+	await BP.add_post(start_id, page_text);
 	await BP.add_post_parents(start_id);
 	BP.each_ended(start_id);
 	return;
@@ -36,9 +42,9 @@ BP.add_post_parents = async function(post_id){
 	return;
 };
 
-BP.add_post = async function(post_id){
-	if(BP.posts[post_id]){ return; }
-	const page_text = await BP.download_post(post_id);
+BP.add_post = async function(post_id, input_text){
+	if(!input_text && BP.posts[post_id]){ return; }
+	const page_text = input_text || await BP.download_post(post_id);
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(page_text, "text/html");
 	const post = BP.doc_to_post(doc, post_id);

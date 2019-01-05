@@ -1,33 +1,45 @@
-#ibp_container > *:not(:first-child) { width: 236px; }
-#ibp_container .status-notice {
-	margin: 0;
-	padding: 3px;
-	display: inline-block;
+#ibp_graph { background-color:#284a81; }
+#ibp_container > * > .status-notice {
 	margin-bottom: 5px;
-	top: 0;
+	padding: 3px;
 }
-#ibp_toggler { width: calc(100% - (1em + 2px)); padding: 0.5em !important; }
-#ibp_tools > div { cursor: pointer; }
-.ibp_rule *:not(span){
-	height: auto;
-	width: auto;
-	max-width: 100px;
-	max-height: 100px;
-	display: inline-block;
-	box-shadow: none;
-	padding:0px;
+#ibp_toggle_holder > button, #ibp_tools > button { color:white; }
+#ibp_toggle_holder, #ibp_tools {
+	display:flex;
 }
 
-.ibp_rule > button {
+#ibp_toggle_holder > :first-child { flex-grow:1; }
+#ibp_toggle_holder > :first-child ~ * { margin-left:2px; }
+
+#ibp_tools > :first-child ~ * { margin-left:2px; }
+
+
+
+.ibp_rule { width:205px; padding:5px !important; }
+.ibp_rule_tools {
+	display:flex;
+}
+.ibp_rule_tools > button {
 	padding: 0px;
 	border: 1px solid;
 	cursor: pointer;
 }
 
+.ibp_rule_data {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-gap: 0px 5px;
+}
+.ibp_rule_data > *, .ibp_rule_data > a > img {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	box-shadow: none;
+	padding:0px;
+	max-width: 100px;
+	max-height: 100px;
+}
+
 .ibp_remove_btn { background-color:red; border-color:orangered; }
 .ibp_collapse_btn { background-color:orange; border-color:orangered; }
 .ibp_flip_btn { background-color:plum; border-color:purple; }
-
-.ibp_rule { padding:0.5em !important; }
-
-.ibp_arrow1, .ibp_arrow2 { width: 10px; }

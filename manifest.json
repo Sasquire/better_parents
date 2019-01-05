@@ -32,6 +32,7 @@
 			"matches": ["*://e621.net/post/show/*"],
 			"js": [
 				"./source/parent_viewer/vis-network.min.js",
+				"./source/utilities/options.js",
 				"./source/parent_viewer/download_posts.js",
 				"./source/parent_viewer/graph.js",
 				"./source/parent_viewer/main.js"

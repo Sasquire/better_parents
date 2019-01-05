@@ -2,7 +2,7 @@
 	display: none !important;
 }
 .status-notice {
-	top: 0px;
+	top: 0px !important;
 }
 .status-orange {
 	border: 1px solid #8c650c !important;

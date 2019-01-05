@@ -16,6 +16,8 @@ BP.init_graph = function() {
 	BP.network.on('hoverNode', highlight);
 	BP.network.on('blurNode', () => highlight());
 
+	// todo different colors and use classes?
+	// todo brighter colors
 	function highlight(e){
 		const post_id = e ? e.node : '';
 		const all_fields = BP.read_relations();

@@ -1,45 +1,94 @@
 BP.setup_toolbar = function(){
 	const menu_node = string_to_node(`
-	<div id="ibp_toggler" class="status-notice">
-		Toggle Better Parents
+	<div id="ibp_toggle_holder">
+		<button id="ibp_all_toggler" class="status-notice">Toggle</button>
+		<button id="ibp_graph_toggler" class="status-notice">G</button>
+		<button id="ibp_relation_toggler" class="status-notice">R</button>
+		<button id="ibp_reduce_toggler" class="status-notice">M</button>
 	</div>
 	<div id="ibp_tools">
-		<div class="status-notice" id="ibp_fix_relations_btn">Fix</div>
-		<div class="status-notice" id="ibp_update_graph_btn">Update</div>
-		<div class="status-notice" id="ibp_add_rule_btn">Add</div>
-		<div class="status-notice" id="ibp_minimize_btn">Min</div>
-		<div class="status-notice" id="ibp_submit_btn">Submit</div>
+		<button class="status-notice" id="ibp_fix_relations_btn">Fix</button>
+		<button class="status-notice" id="ibp_draw_graph_btn">Draw</button>
+		<button class="status-notice" id="ibp_add_rule_btn">Add</button>
+		<button class="status-notice" id="ibp_submit_btn">Submit</button>
 	</div>
 	<div id="ibp_relations">
-	</div>`, 'ibp_container');
+	</div>`
+	,'ibp_container');
 	const sidebar = document.querySelector('#post-view > .sidebar');
 	sidebar.insertBefore(menu_node, sidebar.firstChild);
 	
-	document.getElementById('ibp_toggler').addEventListener('click', BP.toggle_visibility);
-	document.getElementById('ibp_fix_relations_btn').addEventListener('click', BP.check_all_rules)
-	document.getElementById('ibp_update_graph_btn').addEventListener('click', BP.update_both)
+	document.getElementById('ibp_all_toggler').addEventListener('click', BP.toggle_both);
+	document.getElementById('ibp_graph_toggler').addEventListener('click', BP.toggle_graph);
+	document.getElementById('ibp_relation_toggler').addEventListener('click', BP.toggle_relations);
+	document.getElementById('ibp_reduce_toggler').addEventListener('click', BP.toggle_reduce_relations);
+	
+	document.getElementById('ibp_fix_relations_btn').addEventListener('click', BP.fix_unknown_relations)
+	document.getElementById('ibp_draw_graph_btn').addEventListener('click', BP.update_both)
 	document.getElementById('ibp_add_rule_btn').addEventListener('click', BP.add_rule);
-	document.getElementById('ibp_minimize_btn').addEventListener('click', BP.reduce_posts);
 	document.getElementById('ibp_submit_btn').addEventListener('dblclick', BP.submit_changes);
 };
 
-BP.toggle_visibility = function(){
-	document.getElementById('ibp_relations').classList.toggle('hidden');
-	document.getElementById('ibp_tools').classList.toggle('hidden');
-	document.getElementById('ibp_toggler').classList.toggle('status-red');
-	document.getElementById('ibp_graph').classList.toggle('hidden');
+BP.style_toggle_both = function(){
+	const graph_off = document.getElementById('ibp_graph').classList.contains('hidden');
+	if(graph_off == true){
+		document.getElementById('ibp_all_toggler').classList.add('status-red');
+	} else {
+		document.getElementById('ibp_all_toggler').classList.remove('status-red');
+	}
 };
 
-BP.reduce_posts = function(){
+BP.toggle_both = function(){
+	/* relations off && graph off turn both on
+	   relations off && graph on  turn graph off
+	   relations on  && graph off turn graph on
+	   relations on  && graph on  turn both off   */
+	const relations_status = document.getElementById('ibp_relations').classList.contains('hidden');
+	const graph_status = document.getElementById('ibp_graph').classList.contains('hidden');
+	if(relations_status == graph_status){
+		BP.toggle_relations();
+	}
+	BP.toggle_graph();
+	BP.style_toggle_both();
+};
+
+BP.toggle_relations = function(){
+	document.getElementById('ibp_relations').classList.toggle('hidden');
+	document.getElementById('ibp_tools').classList.toggle('hidden');
+	document.getElementById('ibp_relation_toggler').classList.toggle('status-red');
+	BP.style_toggle_both();
+}
+
+BP.toggle_graph = function(){
+	document.getElementById('ibp_graph_toggler').classList.toggle('status-red');
+	document.getElementById('ibp_graph').classList.toggle('hidden');
+	BP.style_toggle_both();
+}
+
+BP.toggle_reduce_relations = function(){
 	const old_node = document.getElementById('ibp_hider');
 	if(old_node){ return old_node.remove(); }
-	const new_node = string_to_node('<style id="ibp_hider">.ibp_arrow2, .ibp_rule > a { display:none !important }</style>').firstElementChild;
+	const new_node = string_to_node(`
+		<style id="ibp_hider">
+			.ibp_rule_data > a { display:none !important }
+			.ibp_rule_data > input { width: 55px !important; }
+			.ibp_rule { width: 115px; padding: 3px !important;}
+			.ibp_rule_tools > button { width:30px; overflow:hidden; flex-grow:1; }
+			#ibp_reduce_toggler { background-color: #822828; border: 1px solid #ac2d2d; }
+		</style>`).firstElementChild;
 	document.head.appendChild(new_node);
+};
+
+BP.apply_settings = function(){
+	Opt.get('BP_reduce_relations').then(o => o ? BP.toggle_reduce_relations() : '');
+	Opt.get('BP_hide_relations').then(o => o ? BP.toggle_relations() : '');
+	Opt.get('BP_hide_graph').then(o => o ? BP.toggle_graph() : '');
+	Opt.get('BP_auto_download').then(o => o ? BP.start() : '');
 };
 
 BP.submit_changes = async function(){
 	const submit_btn = document.getElementById('ibp_submit_btn');
-	submit_btn.classList.add('status-purple');
+	submit_btn.classList.add('status-plum');
 	setTimeout(() => submit_btn.classList.remove('status-plum'), 3000);
 	const relations = BP.read_relations();
 	const r = relations.map(e => e.s_num);
@@ -69,7 +118,8 @@ BP.submit_changes = async function(){
 	// todo use form subit instead of api?
 	async function set_parent(post_id, parent_id){
 		const url_obj = new URL('https://e621.net/post/update.json');
-		const { api_key, username } = await get_from_storage(['api_key', 'username']);
+		const api_key = await Opt.get('api_key');
+		const username = await Opt.get('username');
 		if(api_key == undefined || username == undefined){ return; }
 		url_obj.searchParams.set('id', post_id);
 		url_obj.searchParams.set('name', username);
@@ -81,35 +131,23 @@ BP.submit_changes = async function(){
 	}
 };
 
-BP.check_all_rules = async function(){
-	const relations = BP.read_relations();
-	for(const relation of relations){
-		await BP.download_complete_post(relation.s_num);
-		await BP.download_complete_post(relation.t_num);
-	}
-	document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
-	BP.update_both();
-	return;
-}
-
-// todo better seperators
 BP.add_rule = function(input_rule){
 	if(input_rule.parent_id === null){ return; }
 	const post_id = input_rule.post_id || 0;
 	const parent_id = input_rule.parent_id || 0;
 	const rule_node = string_to_node(`
 	<div class="ibp_rule status-notice">
-		<button class="ibp_remove_btn">Remove Rule</button>
-		<button class="ibp_collapse_btn">Collapse</button>
-		<button class="ibp_flip_btn">Flip</button>
-		<br/>
-		<input class="ibp_child_text" value="${post_id}"></input>
-		<span class="ibp_arrow1"></span>
-		<input class="ibp_parent_text" value="${parent_id}"></input>
-		<br/>
-		<a class="ibp_child_link"><img class="ibp_child_img"></a>
-		<span class="ibp_arrow2"></span>	
-		<a class="ibp_parent_link"><img class="ibp_parent_img"></a>
+		<div class="ibp_rule_tools">
+			<button class="ibp_remove_btn">Remove</button>
+			<button class="ibp_collapse_btn">Collapse</button>
+			<button class="ibp_flip_btn">Flip</button>
+		</div>
+		<div class="ibp_rule_data">
+			<input class="ibp_child_text" value="${post_id}"></input>
+			<input class="ibp_parent_text" value="${parent_id}"></input>
+			<a class="ibp_child_link"><img class="ibp_child_img"></a>
+			<a class="ibp_parent_link"><img class="ibp_parent_img"></a>
+		</div>
 	</div>`).firstElementChild;
 	document.getElementById('ibp_relations').appendChild(rule_node);
 
@@ -127,12 +165,12 @@ BP.add_rule = function(input_rule){
 	}
 
 	function remove_rule(){
-		this.parentNode.remove();
+		this.parentNode.parentNode.remove();
 		BP.update_both();
 	}
 
 	function collapse_rule(){
-		const parent_rule = this.parentNode;
+		const parent_rule = this.parentNode.parentNode;
 		const child_id = parseInt(parent_rule.querySelector('.ibp_child_text').value);
 		const parent_id = parseInt(parent_rule.querySelector('.ibp_parent_text').value);
 		BP.read_relations()
@@ -142,7 +180,7 @@ BP.add_rule = function(input_rule){
 	}
 
 	function flip_rule(){
-		const parent_rule = this.parentNode;
+		const parent_rule = this.parentNode.parentNode;
 		const child = parent_rule.querySelector('.ibp_child_text');
 		const parent = parent_rule.querySelector('.ibp_parent_text');
 		const s = child.value;
@@ -219,35 +257,28 @@ function string_to_node(string, id){
 	return temp;
 }
 
-async function get_from_storage(key){
-	return new Promise(function(resolve, reject){
-		chrome.storage.sync.get(key, function(e){
-			resolve(e);
-		});
-	});
-}
-
 (function(){
-	const page_text = document.documentElement.outerHTML;
 	const parent_notification = document.querySelector('#post-view > .sidebar > .status-notice > h6');
 	const child_notification = document.querySelector('#child-posts');
 	if(parent_notification == null && child_notification == null){ return; }
 	if(parent_notification) { parent_notification.parentNode.remove(); }
 	if(child_notification){ child_notification.remove(); }
-	BP.setup_toolbar();
-	BP.init_graph();
+	
 	
 	BP.each_start = function(e){
-		document.getElementById('ibp_toggler').innerHTML = 'Downloading Post #'+e;
-		document.getElementById('ibp_toggler').classList.add('status-orange');
+		document.getElementById('ibp_all_toggler').innerHTML = 'Downloading #'+e;
+		document.getElementById('ibp_all_toggler').classList.add('status-orange');
 		document.getElementById('ibp_fix_relations_btn').classList.add('status-orange');
 	};
 	BP.each_ended = function(e){
 		BP.add_rule(BP.posts[e]);
-		document.getElementById('ibp_toggler').classList.remove('status-orange');
+		document.getElementById('ibp_all_toggler').classList.remove('status-orange');
 		document.getElementById('ibp_fix_relations_btn').classList.remove('status-orange');
-	}
-	BP.download_all(page_text).then(() => {
-		document.getElementById('ibp_toggler').innerHTML = 'Toggle Better Parents';
-	});
+	};
+	BP.all_over = function(){
+		document.getElementById('ibp_all_toggler').innerHTML = 'Toggle Both';
+	};
+	BP.setup_toolbar();
+	BP.init_graph();
+	BP.apply_settings();
 })();
