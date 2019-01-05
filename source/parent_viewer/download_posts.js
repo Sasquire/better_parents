@@ -49,6 +49,7 @@ BP.add_post_parents = async function(post_id){
 	return;
 };
 
+// todo use the api instead of raw page
 BP.add_post = async function(post_id, input_text){
 	if(!input_text && BP.posts[post_id]){ return; }
 	const page_text = input_text || await BP.download_post(post_id);

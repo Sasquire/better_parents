@@ -1,4 +1,4 @@
-BP.setup_toolbar = function(){
+BP.init_toolbar = function(){
 	const menu_node = string_to_node(`
 	<div id="ibp_toggle_holder">
 		<button id="ibp_all_toggler" class="status-notice">Toggle</button>
@@ -104,17 +104,11 @@ BP.submit_changes = async function(){
 	if(relations.some(pair => pair.s_obj.destroyed || pair.t_obj.destroyed)){ return error('Destroyed post'); }
 	if(BP.locked){ return; } // dont submit while downloading
 
-	const user_defined = relations.filter(pair => BP.posts[pair.s_num].parent_id != pair.t_num);
-	const user_removed = Object.keys(BP.posts)
-		.map(key => BP.posts[key])
-		.filter(obj => obj.parent_id)
-		.filter(obj => relations.some(pair => pair.s_num == obj.post_id) == false)
-		.map(obj => ({post_id:obj.s_num, parent_id:''}));
-	const changed_rules = user_defined.concat(user_removed);
+	const changed_relations = BP.get_changed_relations();
 	
 	BP.start_lock();
 	document.getElementById('ibp_all_toggler').innerHTML = 'Submitting';
-	for(const rule of changed_rules){
+	for(const rule of changed_relations){
 		await set_parent(rule.post_id, rule.parent_id);
 	}
 	BP.all_over();
@@ -142,7 +136,6 @@ BP.submit_changes = async function(){
 		const toggler = document.getElementById('ibp_all_toggler');
 		toggler.innerHTML = message;
 		toggler.classList.add('status-plum');
-		console.log('ab')
 		setTimeout(() => {
 			toggler.classList.remove('status-plum');
 			BP.all_over();
@@ -240,6 +233,17 @@ BP.read_relations = function(){
 		});
 };
 
+BP.get_changed_relations = function(){
+	const user_defined = BP.read_relations().filter(pair => BP.posts[pair.s_num].parent_id != pair.t_num);
+	
+	const source_ids = new Set(BP.read_relations().map(e => e.s_num));
+	const user_removed = Object.values(BP.posts)
+		.filter(obj => obj.parent_id)
+		.filter(obj => source_ids.has(obj.post_id) == false)
+		.map(obj => ({post_id:obj.s_num, parent_id:''}));
+	return changed_rules = user_defined.concat(user_removed);
+};
+
 BP.update_rules = function(){
 	BP.read_relations().forEach(rule => {
 		rule.sn_link.href = '/post/show/'+rule.s_num;
@@ -284,6 +288,9 @@ function string_to_node(string, id){
 	if(parent_notification) { parent_notification.parentNode.remove(); }
 	if(child_notification){ child_notification.remove(); }
 	
+	// todo move these to somewhere else? didn't want to put
+	// them in download_posts.js so there is some level of
+	// seperation between the files.
 	BP.each_start = e => document.getElementById('ibp_all_toggler').innerHTML = 'Downloading #'+e;
 	BP.each_ended = e => BP.add_rule(BP.posts[e]);
 	BP.start_lock = function(){
@@ -299,7 +306,7 @@ function string_to_node(string, id){
 		document.getElementById('ibp_fix_relations_btn').classList.remove('status-orange');
 		document.getElementById('ibp_submit_btn').classList.remove('status-orange');
 	};
-	BP.setup_toolbar();
+	BP.init_toolbar();
 	BP.init_graph();
 	BP.apply_settings();
 })();

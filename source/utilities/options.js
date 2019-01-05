@@ -4,7 +4,7 @@ Opt.items = {
 	'username': {type:'text', default: '', info:'username'},
 	'BP_reduce_relations': {type:'checkbox', default: false, info:'Reduce Relations on Start'},
 	'BP_hide_relations': {type:'checkbox', default: false, info:'Hide Relations on Start'},
-	'BP_hide_graph': {type:'checkbox', default: false, info:'Hide Graph on Start'},
+	'BP_hide_graph': {type:'checkbox', default: true, info:'Hide Graph on Start'},
 	'BP_auto_download': {type:'checkbox', default: true, info:'Download Relations on Start'},
 	'BP_bright_highlights': {type:'checkbox', default: false, info:'Brighter colors for highlighting'}
 };
