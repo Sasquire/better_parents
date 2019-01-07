@@ -16,14 +16,15 @@ CB.create_HTML = function(tree){
 };
 
 (function(){
-	const page_id = parseInt(window.location.href.match(/\/(\d+)./)[1]);
+	const page_id = parseInt(window.location.href.match(/\/([0-9]+).*/)[1]);
 	if(!page_id){
 		// on the listing for all the blips
 	} else {
 		// only the single blip page
 	}
-	CB.download_blip_trees(page_id)
+	CB.build_complete_post(page_id)
 		.then(() => {
+			console.log(CB.all_blip_ids());
 			console.log(CB);
 			document.getElementById('blip').innerHTML = CB.blip_trees.map(CB.create_HTML).join('');
 		})

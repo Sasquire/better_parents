@@ -1,56 +1,56 @@
 CB = {};
-CB.blips = {};
 CB.blip_trees = [];
 CB.saved_page_text = document.documentElement.outerHTML;
 
-CB.download_blip_trees = async function(start_id){
-	await CB.add_all_children(start_id, CB.saved_page_text);
-	CB.convert_all_to_tree();
-};
+CB.all_blip_ids = function(){
+	return CB.blip_trees.map(children_of).reduce((acc, e) => [...acc, ...e], []);
 
-// todo add_all_children is a bad name
-CB.add_all_children = async function(start_id, input_text){
-	if(CB.blips[start_id]){ return; }
-	await CB.add_blip(start_id, input_text);
-	
-	const start_blip = CB.blips[start_id];
-	for(const child of start_blip.children_ids){
-		await CB.add_all_children(child);
+	function children_of(current_node){
+		return [current_node.blip_id].concat(...current_node.children.map(children_of));
 	}
+};
+// todo handle the all blips page
+
+// returns a complete blip tree. both upwards and downwards
+CB.build_complete_post = async function(any_blip_id, input_text, child_tree){
+	const possible_child_id = child_tree ? child_tree.blip_id : undefined;
+	const start_blip = await CB.build_post_with_child(any_blip_id, input_text, possible_child_id);
+	if(start_blip == undefined){
+		// https://e621.net/blip/show/86010
+		// there is a blip that returns 403 forbidden, if a blip does
+		// this then its child should be considered the parent
+		CB.blip_trees.push(child_tree);
+		return child_tree;
+	}
+	start_blip.children = child_tree ? [child_tree] : start_blip.children
+
+	console.log('bcp '+any_blip_id);
 	if(start_blip.parent_id){
-		await CB.add_all_children(start_blip.parent_id);
+		return CB.build_complete_post(start_blip.parent_id, undefined, start_blip);
+	} else {
+		CB.blip_trees.push(start_blip);
+		return start_blip;
 	}
-	return;
 };
 
-// todo make this work in CB.parse_blip or something
-// so there are not two steps for making the tree
-CB.convert_all_to_tree = function() {
-    Object.values(CB.blips).forEach(function(blip) {
-		if(blip.parent_id) {
-            CB.blips[blip.parent_id].children.push(blip);
-        } else {
-			CB.blip_trees.push(blip);
-		}
-	});
-	//CB.blip_tree = Object.values(CB.blips).find(b => b.parent_id == null);
-    return;
-};
-
-CB.add_blip = async function(blip_id, input_text){
-	if(!input_text && CB.blips[blip_id]){ return; }
-	const page_text = input_text || await CB.download_blip(blip_id);
+// returns the blip downwards, does not look at parents.
+CB.build_post_with_child = async function(start_id, input_text, child_blip_to_ignore){
+	console.log('bcpwc '+start_id);
+	const page_text = input_text || await CB.download_blip(start_id);
 	const doc = new DOMParser().parseFromString(page_text, "text/html");
-	CB.blips[blip_id] = CB.parse_blip(doc);
-	return;
-};
-
-CB.parse_blip = function(doc){
-	const this_post = CB.comment_node_to_json(doc.getElementsByClassName('comment').item(0));
-	const replies = Array.from(doc.getElementsByClassName('comment')).splice(1).map(CB.comment_node_to_json);
-	this_post.children_ids = this_post.has_children ? replies.map(e => e.blip_id) : [];
-	replies.filter(r => r.has_children == false)
-		.forEach(r => CB.blips[r.blip_id] = r);
+	
+	const comments = Array.from(doc.getElementsByClassName('comment')).map(CB.comment_node_to_json);
+	const this_post = comments[0];
+	const replies = comments.splice(1);
+	for(const r of replies){
+		if(r.blip_id == child_blip_to_ignore){
+			continue;
+		} else if(r.has_children){
+			this_post.children.push(await CB.build_post_with_child(r.blip_id));
+		} else {
+			this_post.children.push(r);
+		}
+	}
 	return this_post;
 };
 
@@ -71,7 +71,6 @@ CB.comment_node_to_json = (node) => ({
 	// .message.replace(/<\/p><p>/gs, '</p><p class="paragraph-seperator">');
 	body_text: node.querySelector('.content > .body').innerHTML,
 	has_children: Array.from(node.querySelector('.content > .footer').children).some(e => e.innerText == 'View Responses'),
-	children_ids: [],
 	children: [],
 	footer_text_arr: Array.from(node.querySelector('.content > .footer').children)
 			.filter(e => e.innerText != 'View Responses' && e.innerText != '@' && e.innerText != 'Respond')
