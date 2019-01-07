@@ -39,6 +39,14 @@
 			],
 			"css": ["./source/parent_viewer/main.css"],
 			"run_at": "document_idle"
+		}, {
+			"matches": ["*://e621.net/blip/*"],
+			"js": [
+				"./source/cascading_blips/download_blips.js",
+				"./source/cascading_blips/main.js"
+			],
+			"css": ["./source/cascading_blips/main.css"],
+			"run_at": "document_idle"
 		}
 	],
 
