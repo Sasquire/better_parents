@@ -10,6 +10,7 @@
 	padding-right:4px;
 }
 .icb_comment_group { margin-left: 30px; margin-top: 4px; }
+#blip > .icb_comment_group { margin-left: 0px; }
 /*
 .body {
 	margin-top:7px;

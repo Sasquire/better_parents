@@ -1,6 +1,9 @@
 CB = {};
 CB.blip_trees = [];
 CB.saved_page_text = document.documentElement.outerHTML;
+CB.start_each = function(){};
+CB.end_each = function(){};
+CB.all_over = function(){};
 
 CB.all_blip_ids = function(){
 	return CB.blip_trees.map(children_of).reduce((acc, e) => [...acc, ...e], []);
@@ -9,7 +12,20 @@ CB.all_blip_ids = function(){
 		return [current_node.blip_id].concat(...current_node.children.map(children_of));
 	}
 };
-// todo handle the all blips page
+
+CB.create_trees_on_listing = async function() {
+	const all_blips = Array.from(document.getElementsByClassName('comment')).map(CB.comment_node_to_json);
+	all_blips.filter(e => e.has_children == false && e.parent_id == null)
+		.forEach(e => CB.blip_trees.push(e));
+	const others = all_blips.filter(e => e.has_children == true || e.parent_id != null);
+
+	// doesnt handle when the parent/child blip is in the same page as itself
+	for(const b of others){
+		if(CB.all_blip_ids().some(e => e == b.blip_id)){ continue; }
+		await CB.build_complete_post(b.blip_id);
+	}
+	return;
+};
 
 // returns a complete blip tree. both upwards and downwards
 CB.build_complete_post = async function(any_blip_id, input_text, child_tree){
@@ -22,9 +38,8 @@ CB.build_complete_post = async function(any_blip_id, input_text, child_tree){
 		CB.blip_trees.push(child_tree);
 		return child_tree;
 	}
-	start_blip.children = child_tree ? [child_tree] : start_blip.children
+	if(child_tree){ start_blip.children.push(child_tree); }
 
-	console.log('bcp '+any_blip_id);
 	if(start_blip.parent_id){
 		return CB.build_complete_post(start_blip.parent_id, undefined, start_blip);
 	} else {
@@ -35,7 +50,6 @@ CB.build_complete_post = async function(any_blip_id, input_text, child_tree){
 
 // returns the blip downwards, does not look at parents.
 CB.build_post_with_child = async function(start_id, input_text, child_blip_to_ignore){
-	console.log('bcpwc '+start_id);
 	const page_text = input_text || await CB.download_blip(start_id);
 	const doc = new DOMParser().parseFromString(page_text, "text/html");
 	
