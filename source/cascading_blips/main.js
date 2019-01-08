@@ -37,7 +37,11 @@ CB.create_HTML = function(tree){
 		document.getElementById('icb_notification').remove();
 		document.getElementById('blip').innerHTML = CB.blip_trees.map(CB.create_HTML).join('');
 		Array.from(document.getElementsByClassName('icb_toggler')).forEach(n => n.addEventListener('click', toggle_hiddenness));
-		// todo apply blacklist
+
+		const script = document.createElement('script');
+		script.textContent = 'Post.apply_blacklists()';
+		document.head.appendChild(script);
+		script.remove();
 		
 		function toggle_hiddenness(e){
 			this.parentNode.parentNode.querySelector('.icb_body_text').classList.toggle('hidden')
