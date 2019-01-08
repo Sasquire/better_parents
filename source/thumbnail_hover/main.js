@@ -1,8 +1,18 @@
 // todo make this whole thing cleaner
-(function(){
+(async function(){
+	const apply_thumb = (await Opt.get('TH_thumb')) ? 'thumb' : undefined;
+	const apply_dtex = (await Opt.get('TH_dtext')) ? 'thumb_dtext' : undefined;
+	const apply_avatar = (await Opt.get('TH_avatar')) ? 'thumb_avatar' : undefined;
+	const apply_string = [apply_thumb, apply_dtex, apply_avatar]
+		.filter(e => e)
+		.map(e => '.'+e+' img')
+		.join(', ');
+
+	if(apply_string == ''){ return; }
 	document.body.innerHTML += '<div id="idt_image_bank"></div>';
+	
 	add_script(`
-		Array.from(document.querySelectorAll('.thumb img'))
+		Array.from(document.querySelectorAll('${apply_string}'))
 			.forEach(n => n.addEventListener('mousemove', (e) => {
 				const id = e.path[2].id.substring(1);
 				const img = document.getElementById('ith_'+id);			
@@ -11,7 +21,7 @@
 			}));
 	`);
 
-	Array.from(document.querySelectorAll('.thumb img'))
+	Array.from(document.querySelectorAll(apply_string))
 		.forEach(n => {
 			n.title = '';
 			n.addEventListener('mousemove', display_image);
@@ -19,24 +29,36 @@
 		});
 
 	function display_image(e){
-		// todo broken when scrolling
 		// todo webm's do not play/ give invalid image errors
-		const img = document.getElementById('ith_'+(e.path[2].id.substring(1)));
+		const img_id = e.path[2].id.substring(1);
+		const img = document.getElementById('ith_'+img_id);
 		img.style.display = 'block';
 		
-		// todo problems when looking at posts on the bottom of the page
-		img.style.top = e.clientY+10+'px';
-		
+		const viewport_top = e.pageY - e.clientY;
+		const viewport_bot = viewport_top + window.innerHeight;
+		const viewport_left = e.pageX - e.clientX;
+		const viewport_right = viewport_left + window.innerWidth;
+
+		const img_width = img.offsetWidth + 10;
+		const img_height = img.offsetHeight + 10;
+
 		// todo window.innerWidth doesnt count scrollbars
-		if(e.clientX+10+img.offsetWidth > window.innerWidth){
-			img.style.left = e.clientX - (img.width+10)+'px';
+		if(viewport_right < img_width + e.pageX){
+			img.style.left = (e.pageX - img_width)+'px';
 		} else {
-			img.style.left = e.clientX+10+'px';
+			img.style.left = e.pageX+10+'px';
+		}
+
+		if(viewport_bot < e.pageY + img_height){
+			img.style.top = (viewport_bot - img_height)+'px'
+		} else {
+			img.style.top = (e.pageY+10)+'px';
 		}
 	}
 	
 	function hide_image(e){
-		document.getElementById('ith_'+(e.path[2].id.substring(1))).style.display = 'none';
+		const img_id = e.path[2].id.substring(1);
+		document.getElementById('ith_'+img_id).style.display = 'none';
 	}
 
 	function add_script(text){

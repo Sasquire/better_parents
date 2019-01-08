@@ -6,7 +6,10 @@ Opt.items = {
 	'BP_hide_relations': {type:'checkbox', default: false, info:'Hide Relations on Start'},
 	'BP_hide_graph': {type:'checkbox', default: true, info:'Hide Graph on Start'},
 	'BP_auto_download': {type:'checkbox', default: true, info:'Download Relations on Start'},
-	'BP_bright_highlights': {type:'checkbox', default: false, info:'Brighter colors for highlighting'}
+	'BP_bright_highlights': {type:'checkbox', default: false, info:'Brighter colors for highlighting'},
+	'TH_thumb': {type:'checkbox', default: true, info:'Expand thumbnails on hover on most'},
+	'TH_dtext': {type:'checkbox', default: true, info:'Expand thumbnails on hover for dtext'},
+	'TH_avatar': {type:'checkbox', default: true, info:'Expand thumbnails on hover for avatars'}
 };
 
 // todo error handling on all of these?

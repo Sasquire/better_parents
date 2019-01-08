@@ -53,8 +53,11 @@
 			"css": ["./source/quick_set_add/main.css"],
 			"run_at": "document_idle"
 		}, {
-			"matches": ["*://e621.net/post/index/*"],
-			"js": ["./source/thumbnail_hover/main.js"],
+			"matches": ["*://e621.net/*"],
+			"js": [
+				"./source/utilities/options.js",
+				"./source/thumbnail_hover/main.js"
+			],
 			"css": ["./source/thumbnail_hover/main.css"],
 			"run_at": "document_idle"
 		}
