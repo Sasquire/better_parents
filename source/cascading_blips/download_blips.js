@@ -2,8 +2,6 @@ CB = {};
 CB.blip_trees = [];
 CB.saved_page_text = document.documentElement.outerHTML;
 CB.start_each = function(){};
-CB.end_each = function(){};
-CB.all_over = function(){};
 
 CB.all_blip_ids = function(){
 	return CB.blip_trees.map(children_of).reduce((acc, e) => [...acc, ...e], []);
@@ -95,6 +93,7 @@ CB.comment_node_to_json = (node) => ({
 CB.download_blip = async function(id){
 	const url_obj = new URL('https://e621.net/blip/show/');
 	url_obj.searchParams.set('id', id);
+	CB.start_each(id);
 
 	let fetch_req = new Request(url_obj.href);
 	return fetch(fetch_req, {'method': 'GET'}).then(res => res.text());
