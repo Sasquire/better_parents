@@ -1,5 +1,6 @@
 // todo make this whole thing cleaner
 (async function(){
+	// todo apply settings on parents from BP
 	const apply_thumb = (await Opt.get('TH_thumb')) ? 'thumb' : undefined;
 	const apply_dtex = (await Opt.get('TH_dtext')) ? 'thumb_dtext' : undefined;
 	const apply_avatar = (await Opt.get('TH_avatar')) ? 'thumb_avatar' : undefined;

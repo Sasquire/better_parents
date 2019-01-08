@@ -9,7 +9,8 @@ Opt.items = {
 	'BP_bright_highlights': {type:'checkbox', default: false, info:'Brighter colors for highlighting'},
 	'TH_thumb': {type:'checkbox', default: true, info:'Expand thumbnails on hover on most'},
 	'TH_dtext': {type:'checkbox', default: true, info:'Expand thumbnails on hover for dtext'},
-	'TH_avatar': {type:'checkbox', default: true, info:'Expand thumbnails on hover for avatars'}
+	'TH_avatar': {type:'checkbox', default: true, info:'Expand thumbnails on hover for avatars'},
+	'QSA_ignore': {type:'text', default:'', info:'(set id\'s to ignore) 452,3772,993'}
 };
 
 // todo error handling on all of these?
