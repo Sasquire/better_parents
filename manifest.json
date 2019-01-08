@@ -47,6 +47,11 @@
 			],
 			"css": ["./source/cascading_blips/main.css"],
 			"run_at": "document_idle"
+		}, {
+			"matches": ["*://e621.net/post/show/*"],
+			"js": ["./source/quick_set_add/main.js"],
+			"css": ["./source/quick_set_add/main.css"],
+			"run_at": "document_idle"
 		}
 	],
 
