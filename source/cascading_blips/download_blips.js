@@ -80,10 +80,11 @@ CB.comment_node_to_json = (node) => ({
 		const maybe_parent = node.querySelector('.content > h6');
 		return maybe_parent ? parseInt(maybe_parent.innerText.match(/\d+/)) : null;
 	})(),
-	// .message.replace(/<\/p><p>/gs, '</p><p class="paragraph-seperator">');
 	body_text: node.querySelector('.content > .body').innerHTML,
-	has_children: Array.from(node.querySelector('.content > .footer').children).some(e => e.innerText == 'View Responses'),
 	children: [],
+	// footer not present when user not logged in
+	// but if not logged in you cant see the replies anyhow
+	has_children: Array.from(node.querySelector('.content > .footer').children).some(e => e.innerText == 'View Responses'),
 	footer_text_arr: Array.from(node.querySelector('.content > .footer').children)
 			.filter(e => e.innerText != 'View Responses' && e.innerText != '@' && e.innerText != 'Respond')
 			.map(e => e.outerHTML)

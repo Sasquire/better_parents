@@ -1,4 +1,6 @@
 // todo have @'s link to users
+// todo does there really need to be two files?
+// is one good enough, is there anything to gain from two?
 CB.create_HTML = function(tree){
     return `
     <div class="icb_comment_group">
@@ -16,22 +18,22 @@ CB.create_HTML = function(tree){
 };
 
 (function(){
+	// todo clean this up
 	(async () => {
-		document.getElementById('content').innerHTML = `<div id="icb_notification" class="section">yeah boi</div>` + document.getElementById('content').innerHTML;
+		document.getElementById('content').innerHTML = `<div id="icb_notification" class="section"></div>` + document.getElementById('content').innerHTML;
 		CB.start_each = (id) => {
 			const notifier = document.getElementById('icb_notification');
 			notifier.innerHTML = 'Downloading Blip #'+id;
 			notifier.classList.add('status-orange');
 		};
-		// todo add support for the second page of blips
-		// https://e621.net/blip?limit=50&page=2
-		if(window.location.href.match(/blip\/index.*/)){
-			document.getElementById('blip-list').id = 'blip'
-			return CB.create_trees_on_listing();
-		} else {
+		if(window.location.href.match(/blip\/show\/\d+/)){
 			const page_id = parseInt(window.location.href.match(/\/([0-9]+).*/)[1]);
 			document.head.appendChild(string_to_node(`<style id="icb_highlight">#icb_blip_${page_id}{ background-color: #26586e !important; }</style>`).firstElementChild);
 			return CB.build_complete_post(page_id, document.documentElement.outerHTML);
+		} else {
+			document.getElementById('blip-list').id = 'blip';
+			document.getElementById('content').innerHTML += document.getElementById('paginator').outerHTML
+			return CB.create_trees_on_listing();
 		}
 	})().then(() => {
 		document.getElementById('icb_notification').remove();
