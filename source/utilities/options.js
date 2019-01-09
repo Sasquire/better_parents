@@ -2,15 +2,23 @@ Opt = {};
 Opt.items = {
 	'api_key': {type:'text', default: '', info:'api key'},
 	'username': {type:'text', default: '', info:'username'},
+	
+	'BP_disable': {type:'checkbox', default: false, info:'Completly disable Better Parents'},
 	'BP_reduce_relations': {type:'checkbox', default: false, info:'Reduce Relations on Start'},
 	'BP_hide_relations': {type:'checkbox', default: false, info:'Hide Relations on Start'},
 	'BP_hide_graph': {type:'checkbox', default: true, info:'Hide Graph on Start'},
 	'BP_auto_download': {type:'checkbox', default: true, info:'Download Relations on Start'},
 	'BP_bright_highlights': {type:'checkbox', default: false, info:'Brighter colors for highlighting'},
+	
+	'TH_disable': {type:'checkbox', default: false, info:'Completely disable Thumbnail Hover'},
 	'TH_thumb': {type:'checkbox', default: true, info:'Expand thumbnails on hover on most'},
 	'TH_dtext': {type:'checkbox', default: true, info:'Expand thumbnails on hover for dtext'},
 	'TH_avatar': {type:'checkbox', default: true, info:'Expand thumbnails on hover for avatars'},
-	'QSA_ignore': {type:'text', default:'', info:'(set id\'s to ignore) 452,3772,993'}
+	
+	'QSA_disable': {type:'checkbox', default: false, info:'Completely disable Quick Set Add'},
+	'QSA_ignore': {type:'text', default:'', info:'(set id\'s to ignore) 452,3772,993'},
+
+	'CB_disable': {type:'checkbox', default: false, info:'Completely disable Cascading Blips'},
 };
 
 // todo error handling on all of these?

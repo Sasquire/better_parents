@@ -18,6 +18,8 @@ CB.create_HTML = function(tree){
 };
 
 (function(){
+	if(await Opt.get('CB_disable')){ return; }
+
 	// todo clean this up
 	(async () => {
 		document.getElementById('content').innerHTML = `<div id="icb_notification" class="section"></div>` + document.getElementById('content').innerHTML;

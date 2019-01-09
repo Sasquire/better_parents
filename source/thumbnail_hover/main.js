@@ -1,5 +1,8 @@
 // todo make this whole thing cleaner
+// todo can not favorite posts while this is active?
 (async function(){
+	if(await Opt.get('TH_disable')){ return; }
+
 	// todo apply settings on parents from BP
 	const apply_thumb = (await Opt.get('TH_thumb')) ? 'thumb' : undefined;
 	const apply_dtex = (await Opt.get('TH_dtext')) ? 'thumb_dtext' : undefined;

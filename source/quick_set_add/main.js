@@ -1,4 +1,6 @@
 (async function(){
+	if(await Opt.get('QSA_disable')){ return; }
+
 	const page_id = parseInt(window.location.href.match(/\/(\d+).*/)[1]);
 	const ignore_sets = (await Opt.get('QSA_ignore')).split(',').map(e => parseInt(e));
 	const sets = (await download_sets()).filter(e => ignore_sets.includes(e.id) == false);

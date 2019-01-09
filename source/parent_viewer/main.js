@@ -282,6 +282,8 @@ function string_to_node(string, id){
 }
 
 (function(){
+	if(await Opt.get('BP_disable')){ return; }
+
 	const parent_notification = document.querySelector('#post-view > .sidebar > .status-notice > h6');
 	const child_notification = document.querySelector('#child-posts');
 	if(parent_notification == null && child_notification == null){ return; }
