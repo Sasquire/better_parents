@@ -1,5 +1,4 @@
 // todo make this whole thing cleaner
-// todo can not favorite posts while this is active?
 (async function(){
 	if(await Opt.get('TH_disable')){ return; }
 
@@ -13,15 +12,21 @@
 		.join(', ');
 
 	if(apply_string == ''){ return; }
-	document.body.innerHTML += '<div id="idt_image_bank"></div>';
+	
+	const tmp = document.createElement('div');
+	tmp.id = 'ith_image_bank';
+	document.body.appendChild(tmp);
 	
 	add_script(`
 		Array.from(document.querySelectorAll('${apply_string}'))
 			.forEach(n => n.addEventListener('mousemove', (e) => {
-				const id = e.path[2].id.substring(1);
-				const img = document.getElementById('ith_'+id);			
-				if(img){ return; }
-				document.getElementById('idt_image_bank').innerHTML += '<img id="ith_'+id+'" src="'+Post.posts.get(id).file_url+'" class="ith_img">';
+				const id = e.path[2].id.substring(1);	
+				if(document.getElementById('ith_'+id)){ return; }
+				const new_img = document.createElement('img');
+				new_img.id = 'ith_'+id;
+				new_img.classList.add('ith_img');
+				new_img.src = Post.posts.get(id).file_url;
+				document.getElementById('ith_image_bank').appendChild(new_img);
 			}));
 	`);
 
