@@ -17,7 +17,7 @@ CB.create_HTML = function(tree){
 	</div>`;
 };
 
-(function(){
+(async function(){
 	if(await Opt.get('CB_disable')){ return; }
 
 	// todo clean this up

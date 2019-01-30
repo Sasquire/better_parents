@@ -42,6 +42,7 @@
 		}, {
 			"matches": ["*://e621.net/blip*"],
 			"js": [
+				"./source/utilities/options.js",
 				"./source/cascading_blips/download_blips.js",
 				"./source/cascading_blips/main.js"
 			],

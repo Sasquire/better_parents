@@ -124,9 +124,9 @@ BP.submit_changes = async function(){
 		const username = await Opt.get('username');
 		if(api_key == undefined || username == undefined){ return; }
 		url_obj.searchParams.set('id', post_id);
+		url_obj.searchParams.set('post[parent_id]', parent_id);
 		url_obj.searchParams.set('name', username);
 		url_obj.searchParams.set('password_hash', api_key);
-		url_obj.searchParams.set('post[parent_id]', parent_id);
 	
 		let fetch_req = new Request(url_obj.href);
 		return fetch(fetch_req, {'method': 'POST'}).then(res => res.text());
@@ -240,7 +240,7 @@ BP.get_changed_relations = function(){
 	const user_removed = Object.values(BP.posts)
 		.filter(obj => obj.parent_id)
 		.filter(obj => source_ids.has(obj.post_id) == false)
-		.map(obj => ({post_id:obj.s_num, parent_id:''}));
+		.map(obj => ({post_id:obj.post_id, parent_id:''}));
 	return changed_rules = user_defined.concat(user_removed);
 };
 
@@ -281,7 +281,7 @@ function string_to_node(string, id){
 	return temp;
 }
 
-(function(){
+(async function(){
 	if(await Opt.get('BP_disable')){ return; }
 
 	const parent_notification = document.querySelector('#post-view > .sidebar > .status-notice > h6');
