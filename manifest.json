@@ -10,6 +10,7 @@
 		"webRequest",
 		"webRequestBlocking",
 		"*://e621.net/*",
+		"*://*.facdn.net/*",
 		"storage"
 	],
 
@@ -63,6 +64,15 @@
 				"./source/thumbnail_hover/main.js"
 			],
 			"css": ["./source/thumbnail_hover/main.css"],
+			"run_at": "document_idle"
+		}, {
+			"matches": [
+				"*://www.furaffinity.net/view/*",
+				"*://www.furaffinity.net/full/*"],
+			"js": [
+				"./source/fa_md5_buttons/md5.js",
+				"./source/fa_md5_buttons/main.js"
+			],
 			"run_at": "document_idle"
 		}
 	],
