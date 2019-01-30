@@ -19,6 +19,8 @@ Opt.items = {
 	'QSA_ignore': {type:'text', default:'', info:'(set id\'s to ignore) 452,3772,993'},
 
 	'CB_disable': {type:'checkbox', default: false, info:'Completely disable Cascading Blips'},
+
+	'FA_MD5_disable': {type:'checkbox', default: false, info:'Completely disable md5sum on FA posts'},
 };
 
 // todo error handling on all of these?

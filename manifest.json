@@ -70,6 +70,7 @@
 				"*://www.furaffinity.net/view/*",
 				"*://www.furaffinity.net/full/*"],
 			"js": [
+				"./source/utilities/options.js",
 				"./source/fa_md5_buttons/md5.js",
 				"./source/fa_md5_buttons/main.js"
 			],

@@ -39,6 +39,8 @@ FA_MD5.url_md5 = async function(url){
 };
 
 (async function(){
+	if(await Opt.get('FA_MD5_disable')){ return; }
+	
 	const info = FA_MD5.post_info();
 	const md5s = await Promise.all([
 		FA_MD5.url_md5(info.thumb_url(400)),
